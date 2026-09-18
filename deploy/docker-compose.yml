@@ -1,0 +1,32 @@
+services:
+  emqx:
+    image: emqx/emqx:5.8.3
+    ports: ["1883:1883", "8883:8883", "18083:18083"]
+    ulimits: { nofile: { soft: 1048576, hard: 1048576 } }   # 官方镜像默认 1024，5000 连接会先打爆 fd
+    environment:
+      EMQX_NODE__NAME: emqx@127.0.0.1
+      EMQX_MQTT__MAX_PACKET_SIZE: 1MB
+    healthcheck: { test: ["CMD", "emqx", "ctl", "status"], interval: 10s, timeout: 5s, retries: 12 }
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    ports: ["4222:4222", "8222:8222"]
+    volumes: ["nats-data:/data"]
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+  postgres:
+    image: postgres:16-alpine
+    ports: ["5432:5432"]
+    environment: { POSTGRES_USER: iot, POSTGRES_PASSWORD: iot, POSTGRES_DB: iot }
+    volumes:
+      - ../sql/global.sql:/docker-entrypoint-initdb.d/01-global.sql:ro
+      - ../sql/shard.sql:/docker-entrypoint-initdb.d/02-shard.sql:ro
+      - ../sql/cf001.sql:/docker-entrypoint-initdb.d/03-cf001.sql:ro
+  tdengine:
+    image: tdengine/tdengine:3.3.5.0
+    ports: ["6030:6030", "6041:6041"]
+    volumes: ["td-data:/var/lib/taos"]
+volumes:
+  nats-data: {}
+  td-data: {}

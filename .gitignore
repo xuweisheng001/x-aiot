@@ -1,0 +1,4 @@
+data/
+docs/loadtest/*.csv
+*.test
+.DS_Store

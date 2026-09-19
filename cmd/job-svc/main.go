@@ -12,6 +12,7 @@ import (
 	"github.com/xtool/xtool-aiot/internal/job"
 	"github.com/xtool/xtool-aiot/internal/pkg/config"
 	"github.com/xtool/xtool-aiot/internal/pkg/httpx"
+	"github.com/xtool/xtool-aiot/internal/pkg/pglock"
 	"github.com/xtool/xtool-aiot/internal/pkg/shadow"
 )
 
@@ -49,8 +50,12 @@ func main() {
 		}
 	}()
 	// 撤回删除（INC-4-26）：以 desired 为触发，默认每 10 分钟扫一轮。
-	go svc.RunPurger(ctx, config.EnvDuration("IOT_JOB_PURGE_INTERVAL", 10*time.Minute))
-	go svc.OptIn.Run(ctx, config.EnvDuration("IOT_JOB_OPTIN_RECONCILE_INTERVAL", job.DefaultOptInReconcileInterval))
+	// 这两个都会删用户数据，必须单实例：并发删除本身幂等，但重复扫描会把删除量与日志放大
+	go pglock.Every(ctx, db, pglock.NameJobPurge, config.EnvDuration("IOT_JOB_PURGE_INTERVAL", 10*time.Minute),
+		func(c context.Context) error { _, err := svc.PurgeOnce(c); return err })
+	go pglock.Every(ctx, db, pglock.NameJobOptIn,
+		config.EnvDuration("IOT_JOB_OPTIN_RECONCILE_INTERVAL", job.DefaultOptInReconcileInterval),
+		func(c context.Context) error { _, err := svc.OptIn.RunOnce(c); return err })
 
 	addr := config.Env("IOT_HTTP_ADDR", ":8091")
 	slog.Info("job-svc listening", "addr", addr, "version", version, "consumer", job.ConsumerName)

@@ -44,8 +44,10 @@ func excludedCodeList() string {
 
 // BuildDefectQuery：events 超级表只有 sn / product_key 两个标签，没有 fw_version，
 // 所以按 (sn, product_key, code) 聚合后在 Go 里用 PG device.fw_version 关联（§9.1 的实现修正）。
+// 首次出现时间用 first(ts) 而不是 min(ts)：TDengine 的 min 不接受 TIMESTAMP 列
+// （报 10242 Invalid parameter data type），而 first 取的就是时间序上最早的一行，语义等价。
 func BuildDefectQuery(since time.Time) string {
-	return fmt.Sprintf("SELECT sn, product_key, code, count(*) AS events, min(ts) AS first_seen FROM iot.events WHERE ts >= %d AND code NOT IN (%s) GROUP BY sn, product_key, code",
+	return fmt.Sprintf("SELECT sn, product_key, code, count(*) AS events, first(ts) AS first_seen FROM iot.events WHERE ts >= %d AND code NOT IN (%s) GROUP BY sn, product_key, code",
 		since.UnixMilli(), excludedCodeList())
 }
 

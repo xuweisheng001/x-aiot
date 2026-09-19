@@ -11,6 +11,7 @@ import (
 	"github.com/xtool/xtool-aiot/internal/alarm"
 	"github.com/xtool/xtool-aiot/internal/pkg/config"
 	"github.com/xtool/xtool-aiot/internal/pkg/httpx"
+	"github.com/xtool/xtool-aiot/internal/pkg/pglock"
 	"github.com/xtool/xtool-aiot/internal/pkg/tdengine"
 )
 
@@ -48,7 +49,10 @@ func main() {
 	rec := alarm.NewReconciler(td, svc,
 		config.EnvDuration("IOT_ALARM_RECONCILE_WINDOW", alarm.DefaultReconcileWindow),
 		config.EnvDuration("IOT_ALARM_RECONCILE_TOLERANCE", alarm.DefaultReconcileTolerance))
-	go rec.Run(ctx, config.EnvDuration("IOT_ALARM_RECONCILE_INTERVAL", alarm.DefaultReconcileInterval))
+	// 单实例：对账会补录并推送漏掉的告警，多副本同时补就是给用户重复推送火警
+	go pglock.Every(ctx, db, pglock.NameAlarmReconcile,
+		config.EnvDuration("IOT_ALARM_RECONCILE_INTERVAL", alarm.DefaultReconcileInterval),
+		func(c context.Context) error { _, err := rec.RunOnce(c); return err })
 
 	addr := config.Env("IOT_HTTP_ADDR", ":8085")
 	slog.Info("alarm-svc listening", "addr", addr, "version", version, "fleet_url", fleetURL)

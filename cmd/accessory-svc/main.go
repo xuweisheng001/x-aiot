@@ -14,6 +14,7 @@ import (
 	"github.com/xtool/xtool-aiot/internal/accessory"
 	"github.com/xtool/xtool-aiot/internal/pkg/config"
 	"github.com/xtool/xtool-aiot/internal/pkg/httpx"
+	"github.com/xtool/xtool-aiot/internal/pkg/pglock"
 	"github.com/xtool/xtool-aiot/internal/pkg/tdengine"
 )
 
@@ -72,9 +73,13 @@ func main() {
 			stop()
 		}
 	}()
-	go eng.RunOffTimer(ctx, time.Second)
-	go eng.RunReconciler(ctx, config.EnvDuration("IOT_ACC_RECONCILE_INTERVAL", time.Minute))
-	go fb.Run(ctx, config.EnvDuration("IOT_ACC_FILTER_INTERVAL", time.Hour))
+	// 延时关闭与联动对账都会下发 desired，多副本会重复下发同一条指令
+	go pglock.Every(ctx, db, pglock.NameAccessoryOffTick, time.Second,
+		func(c context.Context) error { eng.FireDueOff(c); return nil })
+	go pglock.Every(ctx, db, pglock.NameAccessoryReconc, config.EnvDuration("IOT_ACC_RECONCILE_INTERVAL", time.Minute),
+		func(c context.Context) error { _, err := eng.ReconcileOnce(c); return err })
+	go pglock.Every(ctx, db, pglock.NameAccessoryFilter, config.EnvDuration("IOT_ACC_FILTER_INTERVAL", time.Hour),
+		func(c context.Context) error { _, _, err := fb.RunOnce(c); return err })
 	go func() {
 		t := time.NewTicker(24 * time.Hour)
 		defer t.Stop()
@@ -92,7 +97,9 @@ func main() {
 
 	// 配对归属对账（INC-2-06 / INC-2-12）：配对时 owner 一致，转让之后就成了越权通道。
 	ownerRec := accessory.NewOwnerReconciler(store, rdb, m)
-	go ownerRec.Run(ctx, config.EnvDuration("IOT_ACC_OWNER_RECONCILE_INTERVAL", accessory.DefaultOwnerReconcileInterval))
+	go pglock.Every(ctx, db, pglock.NameAccessoryOwner,
+		config.EnvDuration("IOT_ACC_OWNER_RECONCILE_INTERVAL", accessory.DefaultOwnerReconcileInterval),
+		func(c context.Context) error { _, err := ownerRec.RunOnce(c); return err })
 
 	svc := &accessory.Service{Store: store, RDB: rdb, Engine: eng, Filter: fb, Act: act, M: m, Owner: ownerRec}
 	addr := config.Env("IOT_HTTP_ADDR", ":8092")

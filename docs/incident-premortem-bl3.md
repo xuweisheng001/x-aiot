@@ -360,7 +360,7 @@
 | 材料码按批次派生密钥、可吊销、burnt 率按 batch 看板 | INC-3-13 | P1 | 已实现 DeriveBatchKey 与 status 吊销，单测覆盖跨批次验签失败；看板未做 |
 | 外供接口带 model_version 与 stale 由 DB 字段计算 | INC-3-16 / 17 | P1 | 已实现，集成测试覆盖 stale |
 | 导出列白名单进 CI | INC-3-18 | P1 | 未做 |
-| 批作业 advisory lock + 心跳 | INC-3-19 | P1 | 未做：当前只有进程内 runMu，多副本需 advisory lock |
+| 批作业 advisory lock + 心跳 | INC-3-19 | P1 | 已实现：进程内 runMu + pglock（PG 会话级 advisory lock）单实例选举，多副本下只有持锁副本跑批 |
 | hours_reset 判定排除 OTA 后 24 h | INC-3-07 | P1 | 未做 |
 | 商城可售探测与死链降级 | INC-3-20 | P1 | 未做 |
 

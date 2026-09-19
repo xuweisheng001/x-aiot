@@ -17,6 +17,7 @@ import (
 	"github.com/xtool/xtool-aiot/internal/health"
 	"github.com/xtool/xtool-aiot/internal/pkg/config"
 	"github.com/xtool/xtool-aiot/internal/pkg/httpx"
+	"github.com/xtool/xtool-aiot/internal/pkg/pglock"
 	"github.com/xtool/xtool-aiot/internal/pkg/tdengine"
 )
 
@@ -99,8 +100,12 @@ func main() {
 		return
 	}
 
-	go svc.Run(ctx)
-	go svc.ReminderRec.Run(ctx, config.EnvDuration("IOT_HEALTH_REMINDER_RECONCILE_INTERVAL", health.DefaultReminderReconcileInterval))
+	// 健康度批会写 consumable_health 并发提醒，多副本同时算就是重复提醒
+	go pglock.Every(ctx, db, pglock.NameHealthBatch, opt.Interval,
+		func(c context.Context) error { _, err := svc.RunOnce(c); return err })
+	go pglock.Every(ctx, db, pglock.NameHealthReminder,
+		config.EnvDuration("IOT_HEALTH_REMINDER_RECONCILE_INTERVAL", health.DefaultReminderReconcileInterval),
+		func(c context.Context) error { _, err := svc.ReminderRec.RunOnce(c); return err })
 
 	addr := config.Env("IOT_HTTP_ADDR", ":8093")
 	slog.Info("health-svc listening", "addr", addr, "version", version,

@@ -13,6 +13,7 @@ import (
 	"github.com/xtool/xtool-aiot/internal/ota"
 	"github.com/xtool/xtool-aiot/internal/pkg/config"
 	"github.com/xtool/xtool-aiot/internal/pkg/httpx"
+	"github.com/xtool/xtool-aiot/internal/pkg/pglock"
 )
 
 const version = "0.1.0"
@@ -48,7 +49,10 @@ func main() {
 	}()
 	go svc.RunDispatcher(ctx, config.EnvDuration("IOT_OTA_DISPATCH_INTERVAL", 2*time.Second))
 	// stale 判定：下发后长时间无终态回报（刷砖/失联）按失败计入熔断（预推演 INC-16）。
-	go svc.RunStaleSweeper(ctx, config.EnvDuration("IOT_OTA_STALE_INTERVAL", time.Minute), config.EnvDuration("IOT_OTA_STALE_AFTER", 30*time.Minute))
+	// 单实例：stale 清扫会把任务计为失败并累加批次 fail_count，多副本会把同一批任务重复计数、提前熔断
+	staleAfter := config.EnvDuration("IOT_OTA_STALE_AFTER", 30*time.Minute)
+	go pglock.Every(ctx, db, pglock.NameOTAStaleSweep, config.EnvDuration("IOT_OTA_STALE_INTERVAL", time.Minute),
+		func(c context.Context) error { _, err := svc.SweepStale(c, staleAfter); return err })
 
 	addr := config.Env("IOT_HTTP_ADDR", ":8086")
 	slog.Info("ota-svc listening", "addr", addr, "version", version)

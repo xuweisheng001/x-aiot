@@ -11,6 +11,7 @@ import (
 
 	"github.com/xtool/xtool-aiot/internal/pkg/config"
 	"github.com/xtool/xtool-aiot/internal/pkg/httpx"
+	"github.com/xtool/xtool-aiot/internal/pkg/pglock"
 	"github.com/xtool/xtool-aiot/internal/pkg/tdengine"
 	"github.com/xtool/xtool-aiot/internal/support"
 )
@@ -33,7 +34,10 @@ func main() {
 	// 指令授权对账（INC-6-02）：有人绕过 grant 下 support/agent 指令时，护栏不会报错，只有对账会。
 	svc.Audit = support.NewAuditReconciler(store, svc.M,
 		config.EnvDuration("IOT_SUPPORT_AUDIT_WINDOW", support.DefaultAuditWindow))
-	go svc.Audit.Run(ctx, config.EnvDuration("IOT_SUPPORT_AUDIT_RECONCILE_INTERVAL", support.DefaultAuditReconcileInterval))
+	// 单实例：多副本同时对账只是重复报同一批越权指令，但会把告警量放大 N 倍
+	go pglock.Every(ctx, db, pglock.NameSupportAudit,
+		config.EnvDuration("IOT_SUPPORT_AUDIT_RECONCILE_INTERVAL", support.DefaultAuditReconcileInterval),
+		func(c context.Context) error { _, err := svc.Audit.RunOnce(c); return err })
 
 	interval := support.DefaultDefectInterval
 	if v := config.Env("IOT_SUPPORT_DEFECT_INTERVAL", ""); v != "" {
@@ -43,7 +47,9 @@ func main() {
 			slog.Warn("bad IOT_SUPPORT_DEFECT_INTERVAL, using default", "value", v)
 		}
 	}
-	go svc.RunDefectAggregator(ctx, interval)
+	// 单实例：缺陷告警有 24h 冷却去重，但多副本会在同一秒内抢着建同一条 defect_alert
+	go pglock.Every(ctx, db, pglock.NameSupportDefect, interval,
+		func(c context.Context) error { _, err := svc.RunDefectOnce(c); return err })
 
 	addr := config.Env("IOT_HTTP_ADDR", ":8095")
 	slog.Info("support-svc listening", "addr", addr, "version", version, "defect_interval", interval.String())

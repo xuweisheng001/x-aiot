@@ -51,6 +51,7 @@ IOT_IT             非空时集成测试打真实依赖，否则 skip
 - `tdengine`：REST 客户端 `Exec(ctx, sql) error`、`Query(ctx, sql) (*Result, error)`；`BatchInsert(ctx, rows []TelemetryRow) error` 按 SN 分组生成多表多行 INSERT（`INSERT INTO iot.t_<sn> USING iot.telemetry TAGS(...) VALUES (...)(...) iot.t_<sn2> ...`），单条 SQL ≤ 900KB 自动切分
 - `shadow`：Redis 影子 `Key(sn)="shadow:"+sn`、`WriteReported(ctx, pipe, sn, fields map[string]any)`、`Read(ctx, sn)`
 - `dedupe`：`Seen(ctx, rdb, sn, seq) (dup bool, err error)` = SETNX dedupe:{sn}:{seq} EX 600；Redis 出错时返回 `dup=false, err`（调用方放行并计数）
+- `pglock`：PG 会话级 advisory lock 做单实例选举。`Key(name)`（FNV-1a 64，带 `xtool-aiot:` 命名空间）、`Guard.Ensure/Release/Held`、`Every(ctx, pool, name, interval, fn)`（持锁副本才执行 fn，退出时解锁）。**为什么用 PG 不用 Redis**：锁和它保护的数据在同一故障域，PG 挂了两边都干不了活，不存在「锁没了但活能干」的裂脑；Redis 锁是第二个故障域，主从切换丢锁时两个副本会同时删同一批用户数据。**为什么会话级不用事务级**：周期任务跨多条语句不是一个事务；会话锁跟着连接走，进程崩了自动释放，不需要 TTL 与续租。**两个坑**：pgxpool 的 `Conn.Release()` 只还连接不解锁，必须先 `pg_advisory_unlock` 再还，否则锁会跟着连接漂进池子；`Ping` 因 context 取消而失败不等于连接坏了，误判成坏连接去关连接会让释放变成异步，接管副本抢不到锁。已登记的锁名见 `pglock.Names`（15 个），有单测断言两两不撞哈希。持锁副本独占一条连接，连接池至少留 2 条。
 - `backoff`：`Next(n int, base time.Duration) time.Duration` = min(2^n·base, 15min) + rand(0,30s)（设备端纪律；simulator 用，单测覆盖上限与抖动范围）
 
 ## 4. 消息与 Topic 契约

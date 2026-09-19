@@ -17,6 +17,7 @@ import (
 
 	"github.com/xtool/xtool-aiot/internal/pkg/config"
 	"github.com/xtool/xtool-aiot/internal/pkg/httpx"
+	"github.com/xtool/xtool-aiot/internal/pkg/pglock"
 	"github.com/xtool/xtool-aiot/internal/probe"
 )
 
@@ -63,7 +64,9 @@ func main() {
 		return
 	}
 
-	go p.Run(ctx)
+	// 单实例：每个副本各发一发，就是每 10 分钟 N 条合成火警，既污染告警列表也放大 squelch 争用
+	go pglock.Every(ctx, db, pglock.NameProbe, opt.Interval,
+		func(c context.Context) error { _, err := p.RunOnce(c); return err })
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", httpx.Healthz("probe", version))

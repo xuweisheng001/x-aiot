@@ -556,7 +556,19 @@ func (e *Engine) FireOff(ctx context.Context, acc string, now time.Time) {
 	}
 }
 
-// RunOffTimer 每秒扫描到期项。
+// FireDueOff 扫一轮到期项并下发关闭；返回处理条数。
+// 从 RunOffTimer 里抽出来，是为了让 pglock.Every 这类「只在持锁副本跑一轮」的封装能直接复用，
+// 不必把定时逻辑复制一遍。
+func (e *Engine) FireDueOff(ctx context.Context) int {
+	now := e.Opt.Now()
+	due := e.PopDue(ctx, now)
+	for _, acc := range due {
+		e.FireOff(ctx, acc, now)
+	}
+	return len(due)
+}
+
+// RunOffTimer 每秒扫描到期项（单实例部署用；多副本请用 pglock.Every 包 FireDueOff）。
 func (e *Engine) RunOffTimer(ctx context.Context, tick time.Duration) {
 	if tick <= 0 {
 		tick = time.Second
@@ -568,10 +580,7 @@ func (e *Engine) RunOffTimer(ctx context.Context, tick time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			now := e.Opt.Now()
-			for _, acc := range e.PopDue(ctx, now) {
-				e.FireOff(ctx, acc, now)
-			}
+			e.FireDueOff(ctx)
 		}
 	}
 }

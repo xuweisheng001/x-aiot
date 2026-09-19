@@ -12,6 +12,7 @@ import (
 	"github.com/xtool/xtool-aiot/internal/fleet"
 	"github.com/xtool/xtool-aiot/internal/pkg/config"
 	"github.com/xtool/xtool-aiot/internal/pkg/httpx"
+	"github.com/xtool/xtool-aiot/internal/pkg/pglock"
 )
 
 const version = "0.1.0"
@@ -53,8 +54,14 @@ func main() {
 	otaURL := config.Env("IOT_OTA_URL", "http://127.0.0.1:8086")
 	svc.OTA = fleet.NewHTTPOTAClient(otaURL) // 组织批量 OTA 建子批次（BL5 §08）
 	sch := fleet.NewScheduler(svc, fleet.NewHTTPDispatcher(devURL))
-	go svc.RunReconcile(ctx)
-	go sch.Run(ctx)
+	// 调度器必须是 leader 单实例（技术方案 §17）：条件 UPDATE 能防住重复下发，
+	// 但每副本各跑一轮会让 claim 冲突成为常态，日志与指标都失真；课表对账同理会重复写 desired。
+	go pglock.Every(ctx, db, pglock.NameFleetReconcile, opt.ReconcileInterval,
+		func(c context.Context) error { _, err := svc.ReconcileOnce(c); return err })
+	go pglock.Every(ctx, db, pglock.NameFleetScheduler, opt.DispatchInterval,
+		func(c context.Context) error { _, err := sch.DispatchOnce(c); return err })
+	go pglock.Every(ctx, db, pglock.NameFleetExpire, opt.ExpireInterval,
+		func(c context.Context) error { _, err := sch.ExpireOnce(c); return err })
 
 	addr := config.Env("IOT_HTTP_ADDR", ":8094")
 	slog.Info("fleet-svc listening", "addr", addr, "version", version, "deviceapi", devURL, "ota", otaURL,

@@ -655,7 +655,7 @@ section{margin-top:3rem}
 <td>批作业 advisory lock + 心跳</td>
 <td><a href="#inc-3-19-批作业重叠运行"><code>INC-3-19</code></a></td>
 <td>P1</td>
-<td>未做：当前只有进程内 runMu，多副本需 advisory lock</td>
+<td>已实现：进程内 runMu + pglock（PG 会话级 advisory lock）单实例选举，多副本下只有持锁副本跑批</td>
 </tr>
 <tr>
 <td>hours_reset 判定排除 OTA 后 24 h</td>

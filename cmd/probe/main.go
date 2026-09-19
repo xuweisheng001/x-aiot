@@ -41,11 +41,13 @@ func main() {
 
 	db := config.MustPG(ctx)
 	defer db.Close()
+	rdb := config.MustRedis()
+	defer rdb.Close()
 
 	emitter, closeFn := buildEmitter(ctx, strings.TrimSpace(firstNonEmpty(*mode, config.Env("IOT_PROBE_MODE", "mqtt"))))
 	defer closeFn()
 
-	p := probe.New(db, emitter, probe.NewMetrics(), opt)
+	p := probe.New(db, rdb, emitter, probe.NewMetrics(), opt)
 
 	if *once {
 		res, err := p.RunOnce(ctx)

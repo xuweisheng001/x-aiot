@@ -21,6 +21,8 @@ type Service struct {
 	Filter *FilterBatch
 	Act    Actuator
 	M      *Metrics
+	// Owner 是配对归属对账器（INC-2-06 / INC-2-12）；nil 时 /internal/reconcile/owners 返回 503。
+	Owner *OwnerReconciler
 }
 
 // PairReq 是 POST /api/v1/pairings 的请求体。
@@ -261,6 +263,19 @@ func Routes(svc *Service, version string) http.Handler {
 			return
 		}
 		httpx.OK(w, map[string]any{"actions": n})
+	})
+	// 配对归属对账（INC-2-06 / INC-2-12）：越权配对停联动、不解绑。
+	mux.HandleFunc("POST /internal/reconcile/owners", func(w http.ResponseWriter, r *http.Request) {
+		if svc.Owner == nil {
+			httpx.Error(w, http.StatusServiceUnavailable, httpx.CodeInternal, "owner reconciler not configured")
+			return
+		}
+		rep, err := svc.Owner.RunOnce(r.Context())
+		if err != nil {
+			writeErr(w, err)
+			return
+		}
+		httpx.OK(w, rep)
 	})
 	return httpx.Chain(mux, httpx.Recover, httpx.Logging)
 }

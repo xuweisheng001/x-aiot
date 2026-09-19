@@ -90,7 +90,11 @@ func main() {
 		}
 	}()
 
-	svc := &accessory.Service{Store: store, RDB: rdb, Engine: eng, Filter: fb, Act: act, M: m}
+	// 配对归属对账（INC-2-06 / INC-2-12）：配对时 owner 一致，转让之后就成了越权通道。
+	ownerRec := accessory.NewOwnerReconciler(store, rdb, m)
+	go ownerRec.Run(ctx, config.EnvDuration("IOT_ACC_OWNER_RECONCILE_INTERVAL", accessory.DefaultOwnerReconcileInterval))
+
+	svc := &accessory.Service{Store: store, RDB: rdb, Engine: eng, Filter: fb, Act: act, M: m, Owner: ownerRec}
 	addr := config.Env("IOT_HTTP_ADDR", ":8092")
 	slog.Info("accessory-svc listening", "addr", addr, "version", version, "consumer", accessory.ConsumerName,
 		"allow_off", opt.AllowOff, "stop_host_on_fire", opt.StopHostOnFire)

@@ -36,7 +36,11 @@ func main() {
 	reader := job.ShadowReaderFunc(func(ctx context.Context, sn string) (map[string]string, error) {
 		return shadow.Read(ctx, rdb, sn)
 	})
-	svc := job.NewService(&job.PGStore{Pool: db}, reader, job.NewMetrics())
+	store := &job.PGStore{Pool: db}
+	svc := job.NewService(store, reader, job.NewMetrics())
+	// 反哺 opt-in 对账（INC-4-18）：落库时的 fail-closed 只看那一刻的影子，
+	// 影子晚到 / 旧 consumer / 回填脚本留下的「未同意却有数据」只有对账能发现。
+	svc.OptIn = job.NewOptInReconciler(svc, store)
 
 	go func() {
 		if err := job.RunConsumer(ctx, js, svc); err != nil && ctx.Err() == nil {
@@ -46,6 +50,7 @@ func main() {
 	}()
 	// 撤回删除（INC-4-26）：以 desired 为触发，默认每 10 分钟扫一轮。
 	go svc.RunPurger(ctx, config.EnvDuration("IOT_JOB_PURGE_INTERVAL", 10*time.Minute))
+	go svc.OptIn.Run(ctx, config.EnvDuration("IOT_JOB_OPTIN_RECONCILE_INTERVAL", job.DefaultOptInReconcileInterval))
 
 	addr := config.Env("IOT_HTTP_ADDR", ":8091")
 	slog.Info("job-svc listening", "addr", addr, "version", version, "consumer", job.ConsumerName)

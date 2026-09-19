@@ -37,6 +37,9 @@ type Service struct {
 	M       *Metrics
 	Now     func() time.Time
 
+	// Audit 是指令授权对账器（INC-6-02）；nil 时 /internal/support/audit/run 返回 503。
+	Audit *AuditReconciler
+
 	// SourceTimeoutOverride 诊断包单源超时（0 = SourceTimeout）。
 	SourceTimeoutOverride time.Duration
 	// SelfCheckPoll 自检结果轮询上限（0 = SelfCheckPollTimeout）。

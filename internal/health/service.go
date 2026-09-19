@@ -48,6 +48,9 @@ type Service struct {
 	Opt    Options
 	Now    func() time.Time
 
+	// ReminderRec 是提醒冷却对账器（INC-3-09）；nil 时 /internal/health/reminders/reconcile 返回 503。
+	ReminderRec *ReminderReconciler
+
 	runMu sync.Mutex // 批与提醒发送串行化（INC-3-09）
 }
 

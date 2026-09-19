@@ -80,8 +80,12 @@ func main() {
 		notifier = &jsNotifier{js: js}
 	}
 
-	svc := health.NewService(&health.PGStore{DB: db}, &health.TDSource{TD: td}, &health.RedisShadow{RDB: rdb},
+	store := &health.PGStore{DB: db}
+	svc := health.NewService(store, &health.TDSource{TD: td}, &health.RedisShadow{RDB: rdb},
 		notifier, health.NewMetrics(), opt)
+	// 提醒冷却对账（INC-3-09）：多副本 / 重试绕过冷却发出的重复提醒，只有事后对账能看见。
+	svc.ReminderRec = health.NewReminderReconciler(store, svc.M,
+		config.EnvDuration("IOT_HEALTH_REMINDER_WINDOW", health.DefaultReminderWindow), opt.Cooldown)
 
 	if *once {
 		rctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -96,6 +100,7 @@ func main() {
 	}
 
 	go svc.Run(ctx)
+	go svc.ReminderRec.Run(ctx, config.EnvDuration("IOT_HEALTH_REMINDER_RECONCILE_INTERVAL", health.DefaultReminderReconcileInterval))
 
 	addr := config.Env("IOT_HTTP_ADDR", ":8093")
 	slog.Info("health-svc listening", "addr", addr, "version", version,

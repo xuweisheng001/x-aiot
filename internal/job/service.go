@@ -35,6 +35,9 @@ type Service struct {
 	Shadow ShadowReader
 	M      *Metrics
 	Now    func() time.Time
+
+	// OptIn 是反哺 opt-in 对账器（INC-4-18）；nil 时 /internal/job/optin/run 返回 503。
+	OptIn *OptInReconciler
 }
 
 func NewService(st Store, sh ShadowReader, m *Metrics) *Service {

@@ -27,7 +27,13 @@ func main() {
 
 	td := tdengine.New(config.TDURL(), config.TDUser(), config.TDPass())
 	devAPI := support.NewHTTPDeviceAPI(config.Env("IOT_DEVICEAPI_URL", "http://127.0.0.1:8083"))
-	svc := support.NewService(&support.PGStore{DB: db}, devAPI, &support.TDSource{C: td}, td, support.NewMetrics())
+	store := &support.PGStore{DB: db}
+	svc := support.NewService(store, devAPI, &support.TDSource{C: td}, td, support.NewMetrics())
+
+	// 指令授权对账（INC-6-02）：有人绕过 grant 下 support/agent 指令时，护栏不会报错，只有对账会。
+	svc.Audit = support.NewAuditReconciler(store, svc.M,
+		config.EnvDuration("IOT_SUPPORT_AUDIT_WINDOW", support.DefaultAuditWindow))
+	go svc.Audit.Run(ctx, config.EnvDuration("IOT_SUPPORT_AUDIT_RECONCILE_INTERVAL", support.DefaultAuditReconcileInterval))
 
 	interval := support.DefaultDefectInterval
 	if v := config.Env("IOT_SUPPORT_DEFECT_INTERVAL", ""); v != "" {

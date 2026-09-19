@@ -65,7 +65,7 @@ func TestIntegration_ProbeOKAndCleansUp(t *testing.T) {
 	sn := probeSN()
 	cleanupSN(t, db, sn)
 
-	p := New(db, &fakeEmitter{db: db, deliver: true, notify: true, delay: 100 * time.Millisecond},
+	p := New(db, nil, &fakeEmitter{db: db, deliver: true, notify: true, delay: 100 * time.Millisecond},
 		NewMetrics(), Options{SN: sn, SLO: 3 * time.Second, Timeout: 10 * time.Second})
 	res, err := p.RunOnce(ctx)
 	if err != nil {
@@ -107,7 +107,7 @@ func TestIntegration_ProbeMissingIsFatal(t *testing.T) {
 	sn := probeSN()
 	cleanupSN(t, db, sn)
 
-	p := New(db, &fakeEmitter{db: db, deliver: false}, NewMetrics(),
+	p := New(db, nil, &fakeEmitter{db: db, deliver: false}, NewMetrics(),
 		Options{SN: sn, SLO: time.Second, Timeout: 1500 * time.Millisecond, Poll: 50 * time.Millisecond})
 	res, err := p.RunOnce(ctx)
 	if err != nil {
@@ -128,7 +128,7 @@ func TestIntegration_ProbeStoredButNeverNotified(t *testing.T) {
 	sn := probeSN()
 	cleanupSN(t, db, sn)
 
-	p := New(db, &fakeEmitter{db: db, deliver: true, notify: false}, NewMetrics(),
+	p := New(db, nil, &fakeEmitter{db: db, deliver: true, notify: false}, NewMetrics(),
 		Options{SN: sn, SLO: time.Second, Timeout: 1500 * time.Millisecond, Poll: 50 * time.Millisecond})
 	res, err := p.RunOnce(ctx)
 	if err != nil {
@@ -152,7 +152,7 @@ func TestIntegration_ProbeSlow(t *testing.T) {
 	sn := probeSN()
 	cleanupSN(t, db, sn)
 
-	p := New(db, &fakeEmitter{db: db, deliver: true, notify: true, delay: 400 * time.Millisecond},
+	p := New(db, nil, &fakeEmitter{db: db, deliver: true, notify: true, delay: 400 * time.Millisecond},
 		NewMetrics(), Options{SN: sn, SLO: 50 * time.Millisecond, Timeout: 5 * time.Second, Poll: 50 * time.Millisecond})
 	res, err := p.RunOnce(ctx)
 	if err != nil {
@@ -177,7 +177,7 @@ func TestIntegration_ProbeIgnoresStaleAlarm(t *testing.T) {
 		VALUES($1,'FLAME_DETECTED','critical',now()-interval '1 hour','notified',now()-interval '1 hour','app')`, sn); err != nil {
 		t.Fatal(err)
 	}
-	p := New(db, &fakeEmitter{db: db, deliver: false}, NewMetrics(),
+	p := New(db, nil, &fakeEmitter{db: db, deliver: false}, NewMetrics(),
 		Options{SN: sn, SLO: time.Second, Timeout: time.Second, Poll: 50 * time.Millisecond})
 	res, err := p.RunOnce(ctx)
 	if err != nil {
@@ -185,5 +185,49 @@ func TestIntegration_ProbeIgnoresStaleAlarm(t *testing.T) {
 	}
 	if res.Status != StatusMissing {
 		t.Fatalf("a stale alarm must not be mistaken for this round's result: %+v", res)
+	}
+}
+
+// 连发两次不能被告警聚合吞掉：探针重启或按需触发时很容易落在上一发的 squelch 窗口内，
+// 那时事件被 alarm-svc 正常聚合掉，探针却会报「漏告警」。误报比漏报更快让人不再相信探针，
+// 所以探针发射前要清掉自己那一个聚合键。
+func TestIntegration_ProbeNotSwallowedBySquelch(t *testing.T) {
+	db, ctx := itDB(t)
+	if !config.Integration() {
+		return
+	}
+	rdb := config.MustRedis()
+	t.Cleanup(func() { _ = rdb.Close() })
+	sn := probeSN()
+	cleanupSN(t, db, sn)
+
+	key := SquelchKey(sn, "FLAME_DETECTED")
+	// 模拟「上一发刚打过」：聚合键还在
+	if err := rdb.Set(ctx, key, 1, 5*time.Minute).Err(); err != nil {
+		t.Fatal(err)
+	}
+	p := New(db, rdb, &fakeEmitter{db: db, deliver: true, notify: true, delay: 50 * time.Millisecond},
+		NewMetrics(), Options{SN: sn, SLO: 3 * time.Second, Timeout: 5 * time.Second, Poll: 50 * time.Millisecond})
+	res, err := p.RunOnce(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Status != StatusOK {
+		t.Fatalf("an existing squelch window must not make the probe cry wolf: %+v", res)
+	}
+	if p.M.Get(MSquelchCleared) != 1 {
+		t.Fatalf("squelch_cleared=%d want 1", p.M.Get(MSquelchCleared))
+	}
+	if n, err := rdb.Exists(ctx, key).Result(); err != nil || n != 0 {
+		t.Fatalf("probe should have removed its own squelch key: exists=%d err=%v", n, err)
+	}
+	// 没有 Redis 时退化为不清理，但也不能报错
+	p2 := New(db, nil, &fakeEmitter{db: db, deliver: true, notify: true}, NewMetrics(),
+		Options{SN: sn, SLO: 3 * time.Second, Timeout: 5 * time.Second, Poll: 50 * time.Millisecond})
+	if _, err := p2.RunOnce(ctx); err != nil {
+		t.Fatalf("probe without redis must still run: %v", err)
+	}
+	if p2.M.Get(MSquelchErr) != 0 {
+		t.Fatal("a nil redis is a configuration choice, not an error")
 	}
 }

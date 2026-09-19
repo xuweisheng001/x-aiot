@@ -152,6 +152,20 @@ func Routes(svc *Service, version string) http.Handler {
 		httpx.OK(w, rep)
 	})
 
+	// 内部：提醒冷却对账（INC-3-09），只报不改数据
+	mux.HandleFunc("POST /internal/health/reminders/reconcile", func(w http.ResponseWriter, r *http.Request) {
+		if svc.ReminderRec == nil {
+			httpx.Error(w, http.StatusServiceUnavailable, httpx.CodeInternal, "reminder reconciler not configured")
+			return
+		}
+		rep, err := svc.ReminderRec.RunOnce(r.Context())
+		if err != nil {
+			fail(w, err)
+			return
+		}
+		httpx.OK(w, rep)
+	})
+
 	ipKey := func(r *http.Request) *string {
 		if r.URL.Path == "/healthz" || r.URL.Path == "/metrics" {
 			return nil

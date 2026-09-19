@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/xtool/xtool-aiot/internal/pkg/envelope"
 )
@@ -75,7 +76,10 @@ func (o *Options) normalise() {
 
 // Prober 跑探测循环。
 type Prober struct {
-	DB  *pgxpool.Pool
+	DB *pgxpool.Pool
+	// RDB 只用来清探针自己那一个 squelch 键（见 clearSquelch）。为 nil 时退化为
+	// 「靠间隔大于 squelch 窗口」，此时重启或按需触发若落在窗口内会误报 missing。
+	RDB *redis.Client
 	Em  Emitter
 	M   *Metrics
 	Opt Options
@@ -85,12 +89,12 @@ type Prober struct {
 	seq int64
 }
 
-func New(db *pgxpool.Pool, em Emitter, m *Metrics, opt Options) *Prober {
+func New(db *pgxpool.Pool, rdb *redis.Client, em Emitter, m *Metrics, opt Options) *Prober {
 	opt.normalise()
 	if m == nil {
 		m = NewMetrics()
 	}
-	return &Prober{DB: db, Em: em, M: m, Opt: opt, Now: time.Now, seq: time.Now().UnixMilli() * 1000}
+	return &Prober{DB: db, RDB: rdb, Em: em, M: m, Opt: opt, Now: time.Now, seq: time.Now().UnixMilli() * 1000}
 }
 
 func (p *Prober) nextSeq() int64 {
@@ -116,6 +120,11 @@ func (p *Prober) RunOnce(ctx context.Context) (Result, error) {
 		res.Status, res.Reason = StatusError, "read baseline alarm id: "+err.Error()
 		return res, err
 	}
+
+	// 清掉上一发留下的聚合窗口，否则重启或按需触发落在 5 分钟内时事件会被 alarm-svc
+	// 正常聚合掉，探针却报「漏告警」——误报比漏报更快让人不再相信探针。
+	// 只删探针自己这一个 SN+code 的键，不碰任何真实设备的聚合状态。
+	p.clearSquelch(ctx)
 
 	if err := p.Em.Emit(ctx, p.Opt.SN, p.Opt.PK, p.Opt.Code, p.nextSeq(), ts); err != nil {
 		p.M.Inc(MErrors)
@@ -182,6 +191,25 @@ func (p *Prober) Run(ctx context.Context) {
 		case <-t.C:
 		}
 	}
+}
+
+// SquelchKey 与 alarm.SquelchKey 同构；这里复制一份而不是 import internal/alarm，
+// 理由同 SquelchWindow：探针应当像外部观察者一样只通过链路、库与约定的 key 观察系统。
+func SquelchKey(sn, code string) string { return "alarm:squelch:" + sn + ":" + code }
+
+// clearSquelch 删除探针自己的聚合键；失败只计数不影响本轮（大不了这一发被聚合，
+// 下一发在窗口外仍会成功，不会造成持续误报）。
+func (p *Prober) clearSquelch(ctx context.Context) {
+	if p.RDB == nil {
+		return
+	}
+	if err := p.RDB.Del(ctx, SquelchKey(p.Opt.SN, p.Opt.Code)).Err(); err != nil {
+		p.M.Inc(MSquelchErr)
+		slog.Warn("probe could not clear its squelch key; this round may be aggregated away",
+			"sn", p.Opt.SN, "err", err)
+		return
+	}
+	p.M.Inc(MSquelchCleared)
 }
 
 // SquelchWindow 与 alarm.SquelchTTL 同值；这里复制一份常量而不是 import internal/alarm，

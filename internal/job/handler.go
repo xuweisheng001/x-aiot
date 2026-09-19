@@ -44,5 +44,19 @@ func Routes(svc *Service, version string) http.Handler {
 		}
 	})
 
+	// 反哺 opt-in 对账（INC-4-18）：手动跑一轮，返回本轮扫描 / 违规 / 删除数。
+	mux.HandleFunc("POST /internal/job/optin/run", func(w http.ResponseWriter, r *http.Request) {
+		if svc.OptIn == nil {
+			httpx.Error(w, http.StatusServiceUnavailable, httpx.CodeInternal, "optin reconciler not configured")
+			return
+		}
+		rep, err := svc.OptIn.RunOnce(r.Context())
+		if err != nil {
+			httpx.Error(w, http.StatusInternalServerError, httpx.CodeInternal, err.Error())
+			return
+		}
+		httpx.OK(w, rep)
+	})
+
 	return httpx.Chain(mux, httpx.Recover, httpx.Logging)
 }

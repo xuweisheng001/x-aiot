@@ -10,13 +10,15 @@ import (
 
 // Metric names（/metrics 前缀 probe_）。
 const (
-	MRuns       = "runs"
-	MOK         = "ok"
-	MSlow       = "slow"
-	MMissing    = "missing"
-	MErrors     = "errors"
-	MCleaned    = "cleaned"
-	MCleanupErr = "cleanup_err"
+	MRuns           = "runs"
+	MOK             = "ok"
+	MSlow           = "slow"
+	MMissing        = "missing"
+	MErrors         = "errors"
+	MCleaned        = "cleaned"
+	MCleanupErr     = "cleanup_err"
+	MSquelchCleared = "squelch_cleared"
+	MSquelchErr     = "squelch_err"
 )
 
 // Metrics 是文本计数器 + 端到端延迟分位。
@@ -31,7 +33,7 @@ const maxSamples = 200
 
 func NewMetrics() *Metrics {
 	m := &Metrics{c: map[string]int64{}}
-	for _, k := range []string{MRuns, MOK, MSlow, MMissing, MErrors, MCleaned, MCleanupErr} {
+	for _, k := range []string{MRuns, MOK, MSlow, MMissing, MErrors, MCleaned, MCleanupErr, MSquelchCleared, MSquelchErr} {
 		m.c[k] = 0
 	}
 	return m

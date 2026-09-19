@@ -185,6 +185,19 @@ func Routes(svc *Service, version string) http.Handler {
 		}
 		httpx.OK(w, rep)
 	})
+	// ---- 指令授权对账（INC-6-02）----
+	mux.HandleFunc("POST /internal/support/audit/run", func(w http.ResponseWriter, r *http.Request) {
+		if svc.Audit == nil {
+			httpx.Error(w, http.StatusServiceUnavailable, httpx.CodeInternal, "audit reconciler not configured")
+			return
+		}
+		rep, err := svc.Audit.RunOnce(r.Context())
+		if err != nil {
+			writeErr(w, err)
+			return
+		}
+		httpx.OK(w, rep)
+	})
 	mux.HandleFunc("GET /api/v1/support/defects", func(w http.ResponseWriter, r *http.Request) {
 		hours, _ := strconv.Atoi(r.URL.Query().Get("hours"))
 		if hours <= 0 {

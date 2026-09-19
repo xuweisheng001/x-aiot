@@ -457,7 +457,7 @@
 | locked 只改 start_allowed 一个变量，台架三项进固件门禁 | INC-5-07 | P0 红线 | 固件侧；云端已实现 DecideJobStart 仅拦「开始新任务」，pause/stop/告警不受锁影响 |
 | 合成探针：站点探针机 locked 下安全事件链路每小时 | INC-5-07 | P0 | 未做 |
 | 解锁兜底不依赖 fleet-svc（deviceapi 直写脚本）；应急解锁 U 盘 | INC-5-08 | P0 | 未做：deviceapi PATCH /desired 可直接改 lock，脚本与 U 盘流程未做 |
-| 越权测试进 CI；repo 层 SQL 模板化 | INC-5-03 | P0 | 越权测试已实现（fake Store 单测 + IT），实机验证跨组织 404；进 CI 未做 |
+| 越权测试进 CI；repo 层 SQL 模板化 | INC-5-03 | P0 | 已实现：越权测试（fake Store 单测 + IT）+ 角色矩阵，实机验证跨组织 404，并进 CI guardrails 作业阻断 |
 | 授权与订阅在成员变更事务内失效 | INC-5-01 INC-5-22 | P0 | 未做 |
 | 调度器条件 UPDATE + uk_item_device_active + 幂等键 + 租约 | INC-5-13 INC-5-14 | P0 | 已实现 ClaimDispatch/ConfirmDispatch/RevertDispatch + uk_item_device_active，IT 验证不重复下发 |
 | InWindow / ShouldLock 用 IANA 时区并单测夏令时 | INC-5-10 INC-5-18 | P0 | 已实现，ShouldLock 含夏令时切换日用例，InWindow 26 例表驱动 |

@@ -619,7 +619,7 @@ section{margin-top:3rem}
 <td>诊断包结构体白名单 + 文本截断 + CI 字段比对 + 每日抽样扫描</td>
 <td><a href="#inc-6-05-诊断包含-pii-或图纸文本"><code>INC-6-05</code></a></td>
 <td>P0</td>
-<td>白名单与截断已实现并有单测；CI 比对与抽样扫描未做</td>
+<td>白名单与截断已实现并有单测，已进 CI guardrails 作业；每日抽样扫描未做</td>
 </tr>
 <tr>
 <td>诊断包读接口鉴权 + 过期清理 + 410 探针</td>
@@ -685,7 +685,7 @@ section{margin-top:3rem}
 <td>Agent 代理只读 + 单写端点 + ticket 归属校验 + 注入用例</td>
 <td>INC-6-08 09</td>
 <td>P1</td>
-<td>已实现，含 untrusted 包裹与越权留痕；实机验证 agent pause 403</td>
+<td>已实现，含 untrusted 包裹与越权留痕；实机验证 agent pause 403，注入与边界用例已进 CI guardrails</td>
 </tr>
 <tr>
 <td>删除传导事件发 xpilot</td>

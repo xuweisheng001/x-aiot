@@ -370,7 +370,7 @@
 |---|---|---|---|
 | deviceapi grant 中间件直查 PG；source 由服务身份推导 | INC-6-02 03 07 | P0 | 已实现 grantcheck + X-Source 头，实机验证 support/agent 无授权 403 |
 | cmd_audit 与 support_grant 每 5 分钟对账 | INC-6-02 | P0 | 已实现 UnauthorizedCmds，实测抓到注入的无授权指令并 ERROR |
-| 诊断包结构体白名单 + 文本截断 + CI 字段比对 + 每日抽样扫描 | INC-6-05 | P0 | 白名单与截断已实现并有单测；CI 比对与抽样扫描未做 |
+| 诊断包结构体白名单 + 文本截断 + CI 字段比对 + 每日抽样扫描 | INC-6-05 | P0 | 白名单与截断已实现并有单测，已进 CI guardrails 作业；每日抽样扫描未做 |
 | 诊断包读接口鉴权 + 过期清理 + 410 探针 | INC-6-06 | P0 | 30 天过期 410 已实现；读接口鉴权由 BFF 承担，清理任务未做 |
 | 并发拉取与单源 2 s 超时 | INC-6-01 | P0 | 已实现，实机 8 源全 ok 未降级 |
 | cmd_id → ticket 映射落 PG，回填校验 SN | INC-6-18 | P0 | 已实现 cmd_ticket_map |
@@ -381,7 +381,7 @@
 | signal 带 evidence / disclaimer | INC-6-14 | P0 | 已实现，单测断言无判定键 |
 | 基线排除测试设备；触发率自动回滚 | INC-6-15 | P0 | 未做 |
 | xpilot 客户端幂等重试；ticket_pending 看板 | INC-6-16 | P0 | 未做：xpilot 侧 |
-| Agent 代理只读 + 单写端点 + ticket 归属校验 + 注入用例 | INC-6-08 09 | P1 | 已实现，含 untrusted 包裹与越权留痕；实机验证 agent pause 403 |
+| Agent 代理只读 + 单写端点 + ticket 归属校验 + 注入用例 | INC-6-08 09 | P1 | 已实现，含 untrusted 包裹与越权留痕；实机验证 agent pause 403，注入与边界用例已进 CI guardrails |
 | 删除传导事件发 xpilot | INC-6-20 | P1 | 未做 |
 
 ---

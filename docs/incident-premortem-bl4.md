@@ -487,7 +487,7 @@ POST /internal/params/releases {product_key, rollback_to: <上一个 version>}  
 
 | 能力 | 对应事故 | 优先级 | 状态（2026-09-19） |
 |---|---|---|---|
-| 越权测试进 CI 阻断；绑定校验为路由组级强制中间件 | INC-4-03 | P0 | BFF 侧，不在本仓库；同类做法已在 fleet-svc 落地（路由组中间件 + 越权单测） |
+| 越权测试进 CI 阻断；绑定校验为路由组级强制中间件 | INC-4-03 | P0 | BFF 侧的绑定校验不在本仓库；同类做法已在 fleet-svc 落地（路由组中间件 + 越权单测），并进 CI guardrails 作业阻断 |
 | 授权缓存只放 Redis，解绑事务内删 | INC-4-04 | P0 | BFF 侧，不在本仓库 |
 | 影子接口返回开关三态，客户端只渲染 state | INC-4-06 | P0 | 已实现 deviceapi BuildSwitches/SwitchState，冒烟验证 applied 态 |
 | 参数发布前差异校验、CHECK 约束、灰度分桶、快照 URL 带版本且 immutable | INC-4-13 INC-4-15 | P0 | 已实现 DiffValidate、ck_profile_params、Bucket 灰度、快照 immutable，实机验证四项 |
@@ -501,7 +501,7 @@ POST /internal/params/releases {product_key, rollback_to: <上一个 version>}  
 | 校正输入缺失返回 k=1、系数分布看板与自动关闭 | INC-4-20 | P1 | 已实现 k=1 与 input_missing，实机验证；看板与自动关闭未做 |
 | 标记暂存机制、job-svc 双副本 | INC-4-22 | P1 | 暂存已实现 job_feedback_pending 与到达后合并；双副本是部署事项 |
 | 设备端 job_start 非空闲拒绝（固件红线） | INC-4-11 | P1 | 云端已实现 DecideJobStart 双条件；设备端为固件红线 |
-| entitlement 三重锁定进 CI | INC-4-23 | P2 | 未做：P2 |
+| entitlement 三重锁定进 CI | INC-4-23 | P2 | 依赖扫描已进 CI（entitlement-isolation 作业，规则先立起来等 entitlement 出现自动生效）；路由表与停机冒烟随 P2 |
 
 ---
 

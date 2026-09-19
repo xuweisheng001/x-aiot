@@ -745,7 +745,7 @@ section{margin-top:3rem}
 <td>越权测试进 CI 阻断；绑定校验为路由组级强制中间件</td>
 <td><a href="#inc-4-03-授权越权"><code>INC-4-03</code></a></td>
 <td>P0</td>
-<td>BFF 侧，不在本仓库；同类做法已在 fleet-svc 落地（路由组中间件 + 越权单测）</td>
+<td>BFF 侧的绑定校验不在本仓库；同类做法已在 fleet-svc 落地（路由组中间件 + 越权单测），并进 CI guardrails 作业阻断</td>
 </tr>
 <tr>
 <td>授权缓存只放 Redis，解绑事务内删</td>
@@ -829,7 +829,7 @@ section{margin-top:3rem}
 <td>entitlement 三重锁定进 CI</td>
 <td><a href="#inc-4-23-entitlement-误伤安全接口"><code>INC-4-23</code></a></td>
 <td>P2</td>
-<td>未做：P2</td>
+<td>依赖扫描已进 CI（entitlement-isolation 作业，规则先立起来等 entitlement 出现自动生效）；路由表与停机冒烟随 P2</td>
 </tr>
 </tbody>
 </table></div>

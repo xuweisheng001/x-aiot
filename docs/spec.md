@@ -120,6 +120,22 @@ IOT_IT             非空时集成测试打真实依赖，否则 skip
 - 设备侧限流：认证后的接口按 `deviceId(sn)+path` 维度限频（Security 中间件之后），同设备第 3 次即 100012（rps 1, burst 2 便于演示）。
 - 测试：digest/SN 校验码/载荷解析 表驱动单测；配额事务 `-race` 100 goroutine 抢 10 配额 恰好 10 成功 90 拒绝（IOT_IT 门控，打真实 PG）。
 
+## 7.5 CI 守卫（.github/workflows/ci.yml）
+
+五个作业，前四个不依赖外部服务：
+
+| 作业 | 守什么 |
+|---|---|
+| build | `go build` / `go vet` / `gofmt -l` 为空 |
+| unit | 全量 `go test -race` |
+| guardrails | **安全不变量**，按名字点出来跑：指令白名单与授权、授权状态机与 Agent 边界、诊断包字段白名单、租户隔离与角色矩阵、调度器不重复下发、隐私开关三态与 opt-in 闸、材料码不带出参数、OTA 熔断与灰度、推荐功率上限、锁键不碰撞 |
+| entitlement-isolation | `go list -deps` 扫描：安全与基础控制链路不得依赖订阅包（BL4 INC-4-23）。entitlement 尚未实现，规则先立起来，等它出现自动生效 |
+| integration | 起 postgres / redis / nats / tdengine 服务容器，按 compose 顺序建表后跑 `IOT_IT=1`（排除 loadgen，它的泄洪用例要求 pipeline 常驻） |
+
+guardrails 单列一个作业而不是混在 unit 里，是因为这些用例失败不是「某个功能坏了」，
+而是**某条安全边界被拆掉了**。CI 面板上要一眼看出是哪类边界破了，而不是淹在 24 个包的输出里。
+新增安全边界时，测试要同时加进这个作业的对应步骤，并在步骤名里写上对应的事故编号。
+
 ## 8. 工程纪律
 - 每个服务 `go vet` 干净，`go build ./...` 通过，`go test -race ./...` 通过（集成测试无依赖时 skip 而非失败）。
 - 纯逻辑抽成纯函数并表驱动测试：熔断判定、SN 规则、digest、退避、告警状态迁移、cell hash、攒批切分。

@@ -1,0 +1,189 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.24"
+
+jobs:
+  # 第一道：编译、静态检查、格式。快，先挡住低级问题。
+  build:
+    name: build / vet / gofmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - run: go build ./...
+      - run: go vet ./...
+      - name: gofmt
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then
+            echo "these files are not gofmt'd:"; echo "$out"; exit 1
+          fi
+
+  # 第二道：全量单测（-race，无外部依赖）。
+  unit:
+    name: unit tests (-race)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - run: go test -race -count=1 ./...
+
+  # 第三道：安全不变量。这些用例失败不是「某个功能坏了」，而是某条安全边界被拆掉了，
+  # 所以单列一个作业、按名字点出来跑：CI 面板上一眼能看出是哪类边界破了，
+  # 而不是淹在 24 个包的输出里。各条对应的事故编号写在 docs/incident-premortem-bl*.md。
+  guardrails:
+    name: security guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: 指令白名单与授权（BL1 FR-18 / BL6 INC-6-02 03 07）
+        run: |
+          go test -race -count=1 -run \
+            'TestDecideCmd|TestPostCmdWhitelist|TestPostCmdSupportWithoutGrantRefused|TestPostCmdSupportWithGrantDispatches|TestPostCmdJobStartRefused|TestDecideJobStart|TestPostCmdAuditUnavailableRefusesDispatch' \
+            -v ./internal/deviceapi/
+
+      - name: 授权状态机与 Agent 边界（BL6 INC-6-08 09）
+        run: |
+          go test -race -count=1 -run \
+            'TestGrantStateMachine|TestGrantFlowAndOwnership|TestSelfCheckRequiresEffectiveGrant|TestNeedsGrantAndAgentAllowed|TestAgentOnlySelfCheckAndUntrusted|TestUnauthorizedCmds' \
+            -v ./internal/support/...
+
+      - name: 诊断包字段白名单（BL6 INC-6-05，附录 B）
+        run: go test -race -count=1 -run 'TestBundleWhitelist|TestWarranty' -v ./internal/support/
+
+      - name: 租户隔离与角色矩阵（BL5 INC-5-03 01）
+        run: go test -race -count=1 -run 'TestTenantIsolation404|TestRoleMatrix403|TestAttachOwnership' -v ./internal/fleet/
+
+      - name: 调度器不得重复下发（BL5 INC-5-13 14）
+        run: |
+          go test -race -count=1 -run \
+            'TestSchedulerDispatchOnce|TestSchedulerClaimLostNoDispatch|TestSchedulerDispatchFailureReverts|TestSchedulerSkipsBusyDevices|TestQueueStateMachine' \
+            -v ./internal/fleet/
+
+      - name: 隐私开关三态与 opt-in 闸（BL4 INC-4-06 10 18）
+        run: |
+          go test -race -count=1 -run 'TestSwitchState|TestBuildSwitchesAndOnline' -v ./internal/deviceapi/
+          go test -race -count=1 -run 'TestValidateJobFields|TestDecideOptIn|TestViolatingSNs' -v ./internal/job/
+          go test -race -count=1 -run 'TestBuildJobFields|TestOptinFromDesired' -v ./internal/simulator/
+
+      - name: 材料码防伪不带出参数（BL3 INC-3-13 14）
+        run: go test -race -count=1 -run 'TestMaterialCodeSignature|TestHandlerVerifyNeverLeaksParamsOnBadCode' -v ./internal/health/
+
+      - name: OTA 熔断与灰度、推荐功率上限（BL1 INC-16 / BL4 INC-4-19）
+        run: |
+          go test -race -count=1 -run 'TestShouldFuse|TestExpectedNextStage|TestInStage|TestInWindow' -v ./internal/ota/
+          go test -race -count=1 -run 'TestWithinPowerCap|TestSafetyUnpublish|TestAggregate' -v ./internal/reco/
+
+      - name: 单实例锁键不碰撞（pglock）
+        run: go test -race -count=1 -run 'TestKeyIsStableAndDistinct|TestNamesAreUnique' -v ./internal/pkg/pglock/
+
+  # 第四道：订阅不得进入安全路径（BL4 INC-4-23 的三重锁定之一）。
+  # 依赖图扫描比测试更早发现问题：只要有人 import 了，还没写调用就已经挡下。
+  entitlement-isolation:
+    name: entitlement must not reach safety paths
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: 依赖图扫描
+        run: |
+          set -eu
+          # entitlement 尚未实现（P2）。这一步现在就立起来，等它出现时自动生效，
+          # 而不是等出了事故再补规则。
+          forbidden='internal/entitlement'
+          safety='./cmd/deviceapi ./cmd/alarm-svc ./cmd/ota-svc ./cmd/job-svc ./cmd/param-svc ./cmd/probe'
+          fail=0
+          for p in $safety; do
+            if go list -deps "$p" 2>/dev/null | grep -q "$forbidden"; then
+              echo "FAIL: $p depends on $forbidden — 安全与基础控制链路不得依赖订阅"; fail=1
+            fi
+          done
+          [ "$fail" -eq 0 ] && echo "ok: no safety path depends on $forbidden"
+
+  # 第五道：集成测试。打真实依赖，覆盖 SQL、约束、消费组、事务这些单测碰不到的地方。
+  integration:
+    name: integration (IOT_IT)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: iot
+          POSTGRES_PASSWORD: iot
+          POSTGRES_DB: iot
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U iot"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      nats:
+        image: nats:2.10-alpine
+        ports: ["4222:4222"]
+      tdengine:
+        image: tdengine/tdengine:3.3.5.0
+        ports: ["6041:6041"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: 建库表（顺序与 compose 一致）
+        env:
+          PGPASSWORD: iot
+        run: |
+          set -eu
+          for f in sql/global.sql sql/shard.sql sql/cf001.sql sql/bl2.sql sql/bl3.sql sql/bl4.sql sql/bl5.sql sql/bl6.sql; do
+            echo "applying $f"
+            psql -h 127.0.0.1 -U iot -d iot -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: 等 TDengine 就绪并建超级表
+        run: |
+          set -eu
+          for i in $(seq 1 40); do
+            if curl -s -u root:taosdata -d 'SHOW DATABASES' http://127.0.0.1:6041/rest/sql | grep -q '"code":0'; then
+              echo "tdengine ready"; break
+            fi
+            sleep 3
+          done
+          go run ./cmd/pipeline -init-schema
+
+      - name: IOT_IT=1 go test -race
+        env:
+          IOT_IT: "1"
+          IOT_PG_DSN: postgres://iot:iot@127.0.0.1:5432/iot?sslmode=disable
+          IOT_REDIS_ADDR: 127.0.0.1:6379
+          IOT_NATS_URL: nats://127.0.0.1:4222
+          IOT_TD_URL: http://127.0.0.1:6041
+        # loadgen 的 flood 用例要求 pipeline 常驻，CI 里不起服务，单独排除
+        run: go test -race -count=1 $(go list ./... | grep -v '/internal/loadgen')

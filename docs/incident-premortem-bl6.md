@@ -369,7 +369,7 @@
 | 能力 | 对应事故 | 优先级 | 状态（2026-09-19） |
 |---|---|---|---|
 | deviceapi grant 中间件直查 PG；source 由服务身份推导 | INC-6-02 03 07 | P0 | 已实现 grantcheck + X-Source 头，实机验证 support/agent 无授权 403 |
-| cmd_audit 与 support_grant 每 5 分钟对账 | INC-6-02 | P0 | 未做 |
+| cmd_audit 与 support_grant 每 5 分钟对账 | INC-6-02 | P0 | 已实现 UnauthorizedCmds，实测抓到注入的无授权指令并 ERROR |
 | 诊断包结构体白名单 + 文本截断 + CI 字段比对 + 每日抽样扫描 | INC-6-05 | P0 | 白名单与截断已实现并有单测；CI 比对与抽样扫描未做 |
 | 诊断包读接口鉴权 + 过期清理 + 410 探针 | INC-6-06 | P0 | 30 天过期 410 已实现；读接口鉴权由 BFF 承担，清理任务未做 |
 | 并发拉取与单源 2 s 超时 | INC-6-01 | P0 | 已实现，实机 8 源全 ok 未降级 |

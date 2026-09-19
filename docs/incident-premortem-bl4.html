@@ -168,7 +168,7 @@ section{margin-top:3rem}
 <header>
   <p class="kicker">Incident Pre-mortem · BL4 软件与内容</p>
   <h1>线上事故预推演与处置方案</h1>
-  <p class="lede">BL4 上线前，沿 App 入口、XCS 云连接、参数库、反哺推荐、订阅、合规六条线逐段推演 26 个最可能的线上事故：怎么触发、怎么传播、看哪个指标能第一时间发现、前 15 分钟做什么、之后怎么恢复、怎么根治、怎么演练。与 BL4 PRD、技术方案对应；设备与平台侧事故见 BL1 预推演。</p>
+  <p class="lede">BL4 上线前，沿 App 入口、XCS 云连接、参数库、反哺推荐、订阅、合规六条线逐段推演 26 个最可能的线上事故。与 BL4 PRD、技术方案对应；设备与平台侧事故见 BL1 预推演。</p>
   <ul class="legend">
     <li><span class="f f3">S1</span> 安全链路失效 / 刷砖 / 停线，15 分钟内止血</li>
     <li><span class="f f2">S2</span> 核心链路 ≥ 10% 设备不可用</li>
@@ -799,7 +799,7 @@ section{margin-top:3rem}
 <td>opt-in 校验 fail-closed 与每日对账</td>
 <td>INC-4-18 INC-4-26</td>
 <td>P1 起</td>
-<td>已实现 fail-closed（Redis 出错也丢弃，计 dropped_optin_err）与撤回 purge；每日对账未做</td>
+<td>已实现：fail-closed（Redis 出错也丢弃）、撤回 purge、每小时对账（影子 optin=false 仍有记录即删；Redis 读不到的只计数不删）</td>
 </tr>
 <tr>
 <td>推荐档功率上限 110%、安全关联每小时、推荐灰度</td>

@@ -354,7 +354,7 @@
 | 缺失不写 0 单测锁定 + 批级缺失率熔断 + 20 档二次确认 | INC-3-02 | P1 | 已实现 ComputeHealth + ShouldFuseBatch，单测与集成测试锁定；20 档二次确认未做 |
 | 配置版本化 + 首轮影子运行比对 | INC-3-01 | P1 | 配置已版本化 health_model_cfg.version；影子运行比对未做 |
 | health 单调性检查与 explain 保留上一值（可回滚） | INC-3-01 / 02 / 04 | P1 | 已实现 Monotonic + health_explain |
-| 冷却用 max(sent_at)、发送串行化、每小时对账 SQL | INC-3-09 | P1 | 已实现 LastSentAt + runMu 串行；每小时对账未做 |
+| 冷却用 max(sent_at)、发送串行化、每小时对账 SQL | INC-3-09 | P1 | 已实现 LastSentAt + runMu 串行 + 每小时冷却对账（只报不改） |
 | deferred 持久化 PG、影子新鲜度判定 | INC-3-11 | P1 | deferred 已落 health_reminder.suppressed_reason；影子新鲜度判定未做 |
 | sku_mapping 双人审批 CHECK + 退货率按版本看板 | INC-3-08 | P1 | 已实现 ck_sku_approved；看板未做 |
 | 材料码按批次派生密钥、可吊销、burnt 率按 batch 看板 | INC-3-13 | P1 | 已实现 DeriveBatchKey 与 status 吊销，单测覆盖跨批次验签失败；看板未做 |

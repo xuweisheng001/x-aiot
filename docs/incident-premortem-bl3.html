@@ -619,7 +619,7 @@ section{margin-top:3rem}
 <td>冷却用 max(sent_at)、发送串行化、每小时对账 SQL</td>
 <td><a href="#inc-3-09-冷却失效提醒风暴"><code>INC-3-09</code></a></td>
 <td>P1</td>
-<td>已实现 LastSentAt + runMu 串行；每小时对账未做</td>
+<td>已实现 LastSentAt + runMu 串行 + 每小时冷却对账（只报不改）</td>
 </tr>
 <tr>
 <td>deferred 持久化 PG、影子新鲜度判定</td>

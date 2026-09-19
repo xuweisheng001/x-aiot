@@ -343,7 +343,7 @@
 | 规则引擎关闭建议全局开关 IOT_ACC_ALLOW_OFF | INC-2-03 | P0 | 已实现 AllowOff |
 | 过期事件丢弃（recv_ts > 60 s 不联动） | INC-2-01 | P0 | 已实现 IsStale |
 | 动作幂等（目标状态相同不下发）+ work_state 去抖 | INC-2-05 | P0 | 已实现 Decide 幂等分支 + 10 s 去抖，单测覆盖 |
-| 配对接口双方 owner 一致校验 + 每日对账 | INC-2-06 INC-2-12 | P0 | 校验已实现 OwnersConsistent；每日对账未做 |
+| 配对接口双方 owner 一致校验 + 每日对账 | INC-2-06 INC-2-12 | P0 | 已实现：配对时 OwnersConsistent 校验 + 每日归属对账（漂移即停联动不解绑），实测同 owner 零误报 |
 | 定时器两步删除 + 长开对账兜底 | INC-2-04 | P0 | 已实现 Redis ZSET 两步 + off_requeued；实机验证 off_sent / off_cancelled |
 | 主机 stop 双证据规则 + 开关 | INC-2-09 | P0 | 已实现 HostStopEvidence + IOT_ACC_STOP_HOST_ON_FIRE |
 | alarm_context 富化失败 Nak 重试 + 对账 | INC-2-07 | P0 | 写入已实现；失败 Nak 重试未做 |

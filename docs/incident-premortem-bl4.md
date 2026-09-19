@@ -496,7 +496,7 @@ POST /internal/params/releases {product_key, rollback_to: <上一个 version>}  
 | XCS 云调用异步化与服务端功能开关 | INC-4-09 | P0 | 客户端侧，不在本仓库 |
 | job 元数据字段格式白名单（设备端与 job-svc 双校验） | INC-4-10 | P0（字段随 P0 进固件） | 已实现：模拟器 opt-in 为 false 时不填字段，job-svc ValidateJobFields 再校验 |
 | 推送 invalid token 处理与短信降级 | INC-4-08 | P0 | 未做：推送在 App 与供应商侧 |
-| opt-in 校验 fail-closed 与每日对账 | INC-4-18 INC-4-26 | P1 起 | 已实现 fail-closed（Redis 出错也丢弃，计 dropped_optin_err）与撤回 purge；每日对账未做 |
+| opt-in 校验 fail-closed 与每日对账 | INC-4-18 INC-4-26 | P1 起 | 已实现：fail-closed（Redis 出错也丢弃）、撤回 purge、每小时对账（影子 optin=false 仍有记录即删；Redis 读不到的只计数不删） |
 | 推荐档功率上限 110%、安全关联每小时、推荐灰度 | INC-4-19 | P1 | 功率上限与安全关联已实现（WithinPowerCap / SafetyUnpublish）；改每小时与推荐灰度未做 |
 | 校正输入缺失返回 k=1、系数分布看板与自动关闭 | INC-4-20 | P1 | 已实现 k=1 与 input_missing，实机验证；看板与自动关闭未做 |
 | 标记暂存机制、job-svc 双副本 | INC-4-22 | P1 | 暂存已实现 job_feedback_pending 与到达后合并；双副本是部署事项 |

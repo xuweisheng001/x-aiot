@@ -104,7 +104,7 @@ func TestTelemetryCycleAndSeq(t *testing.T) {
 	if s != 0 {
 		t.Fatal("wraps")
 	}
-	d := NewDevice(&Config{N: 1, SNPrefix: "SIM"}, 1, &Stats{})
+	d := NewDevice(&Config{N: 1, SNPrefix: "SIM", SeqBase: -1}, 1, &Stats{}) // SeqBase<0：从 0 起，便于断言步进
 	prev := int64(0)
 	for i := 0; i < 100; i++ {
 		seq := d.NextSeq()
@@ -170,5 +170,22 @@ func TestParseBootstrap(t *testing.T) {
 	}
 	if _, err = ParseBootstrap([]byte(`{"code":0,"data":{"cell_id":1}}`)); err == nil {
 		t.Fatal("missing host must fail")
+	}
+}
+
+func TestSeqBase(t *testing.T) {
+	now := time.Date(2026, 9, 18, 12, 0, 0, 0, time.UTC)
+	cases := []struct {
+		base int64
+		want int64
+	}{{100, 100}, {0, now.UnixMilli() * 1000}, {-1, 0}}
+	for _, c := range cases {
+		if got := SeqBase(c.base, now); got != c.want {
+			t.Errorf("SeqBase(%d)=%d want %d", c.base, got, c.want)
+		}
+	}
+	d := NewDevice(&Config{N: 1, SNPrefix: "SIM"}, 1, &Stats{})
+	if d.NextSeq() <= now.UnixMilli()*1000 {
+		t.Errorf("default seq should be time-derived, got %d", d.NextSeq())
 	}
 }

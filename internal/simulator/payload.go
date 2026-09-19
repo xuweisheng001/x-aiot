@@ -17,6 +17,17 @@ type Telemetry struct {
 	FanRPM     int     `json:"fan_rpm"`
 	LaserHours float64 `json:"laser_hours"`
 	Progress   int     `json:"progress"`
+
+	// v1.1 属性：只在上线第一帧与 desired 变更后的下一帧携带；pipeline 对未知标量字段透传进影子 reported。
+	ModuleModel      string `json:"module_model,omitempty"`
+	JobFeedbackOptin *bool  `json:"job_feedback_optin,omitempty"`
+
+	// 净化器（BL2 -accessory 模式）属性：未建模标量，pipeline 透传进影子 reported；主机遥测不携带。
+	PowerOn       *bool    `json:"power_on,omitempty"`
+	FanLevel      *int     `json:"fan_level,omitempty"`
+	PressureDiff  *float64 `json:"pressure_diff,omitempty"`
+	RuntimeH      *float64 `json:"runtime_h,omitempty"`
+	TriggerSource string   `json:"trigger_source,omitempty"`
 }
 
 // Event 对应 spec §4 事件 JSON。

@@ -76,3 +76,32 @@ func handleAudit(store Store, msg jetstream.Msg) {
 	}
 	_ = msg.Ack()
 }
+
+// RunPartitionKeeper 启动时立即调用 EnsureAuditPartitions，之后每 interval 一次，直到 ctx 取消。
+// 失败只记 ERROR 不退出：审计消费者会 Nak 重试，分区补上后自动追平。
+func RunPartitionKeeper(ctx context.Context, store Store, monthsAhead int, interval time.Duration) {
+	run := func() {
+		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		n, err := store.EnsureAuditPartitions(cctx, monthsAhead)
+		if err != nil {
+			slog.Error("ensure cmd_audit partitions", "months_ahead", monthsAhead, "err", err)
+			return
+		}
+		slog.Info("cmd_audit partitions ensured", "months_ahead", monthsAhead, "created", n)
+	}
+	run()
+	if interval <= 0 {
+		return
+	}
+	t := time.NewTicker(interval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			run()
+		}
+	}
+}

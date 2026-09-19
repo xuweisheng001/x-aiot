@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --ink: #1c2733;
+  --muted: #56687a;
+  --accent: #0b7285;
+  --accent-ink: #085d6e;
+  --accent-soft: rgba(11, 114, 133, 0.08);
+  --warn: #b4540a;
+  --warn-soft: rgba(180, 84, 10, 0.07);
+  --line: #dbe3e9;
+  --code-bg: #eef3f5;
+  --code-ink: #14424c;
+  --chip-ink: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161b;
+    --surface: #171f26;
+    --ink: #e3ebf0;
+    --muted: #93a5b2;
+    --accent: #4fc0d3;
+    --accent-ink: #6fd0e0;
+    --accent-soft: rgba(79, 192, 211, 0.1);
+    --warn: #e8964e;
+    --warn-soft: rgba(232, 150, 78, 0.09);
+    --line: #2a3640;
+    --code-bg: #1d2830;
+    --code-ink: #a9d8e2;
+    --chip-ink: #0e1418;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10161b;
+  --surface: #171f26;
+  --ink: #e3ebf0;
+  --muted: #93a5b2;
+  --accent: #4fc0d3;
+  --accent-ink: #6fd0e0;
+  --accent-soft: rgba(79, 192, 211, 0.1);
+  --warn: #e8964e;
+  --warn-soft: rgba(232, 150, 78, 0.09);
+  --line: #2a3640;
+  --code-bg: #1d2830;
+  --code-ink: #a9d8e2;
+  --chip-ink: #0e1418;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  line-height: 1.85;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 5rem; }
+header { margin-bottom: 2.5rem; }
+.kicker {
+  font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin: 0 0 0.8rem;
+}
+h1 {
+  font-family: "Noto Serif SC", serif; font-weight: 900;
+  font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.25;
+  margin: 0 0 1rem; text-wrap: balance;
+}
+.lede { color: var(--muted); margin: 0; max-width: 40rem; }
+nav.toc {
+  margin: 2.2rem 0 0; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); padding: 1.1rem 1.3rem;
+}
+nav.toc p { margin: 0 0 0.5rem; font-size: 0.78rem; letter-spacing: 0.14em; color: var(--muted); font-weight: 700; }
+nav.toc ol {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.15rem 1.5rem;
+}
+nav.toc a { color: var(--ink); text-decoration: none; font-size: 0.93rem; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent-ink); }
+nav.toc li::before { content: counter(list-item, decimal-leading-zero) " "; color: var(--accent); font-family: "JetBrains Mono", monospace; font-size: 0.8rem; }
+section { margin-top: 3.5rem; }
+h2 {
+  font-family: "Noto Serif SC", serif; font-weight: 700;
+  font-size: 1.5rem; line-height: 1.4; margin: 0 0 0.4rem;
+  padding-top: 1.2rem; border-top: 2px solid var(--accent); text-wrap: balance;
+}
+h2 .no { font-family: "JetBrains Mono", monospace; font-size: 0.9rem; color: var(--accent); margin-right: 0.6em; font-weight: 600; }
+h3 {
+  font-weight: 700; font-size: 1.08rem; margin: 2rem 0 0.5rem; text-wrap: balance;
+}
+h3::before { content: "▸ "; color: var(--accent); }
+p { margin: 0.6rem 0; }
+.why { color: var(--muted); font-size: 0.92rem; margin-top: -0.1rem; }
+ul, ol { margin: 0.5rem 0 0.9rem; padding-left: 1.4rem; }
+li { margin: 0.3rem 0; }
+li::marker { color: var(--accent); }
+strong { font-weight: 700; }
+code {
+  font-family: "JetBrains Mono", "Menlo", monospace; font-size: 0.85em;
+  background: var(--code-bg); color: var(--code-ink);
+  padding: 0.1em 0.4em; border-radius: 4px;
+}
+pre {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0.8rem 0 1.2rem;
+}
+pre code { background: none; padding: 0; font-size: 0.84rem; line-height: 1.7; }
+.tablebox { overflow-x: auto; margin: 0.8rem 0 1.2rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.6; }
+th, td { text-align: left; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.8rem; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+.fix { border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0; }
+.fix b { color: var(--warn); }
+.callout {
+  border-left: 3px solid var(--accent); background: var(--accent-soft);
+  border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0;
+}
+.callout b { color: var(--accent-ink); }
+.f {
+  font-family: "JetBrains Mono", monospace; font-size: 0.68rem; font-weight: 600;
+  padding: 0.1em 0.55em; border-radius: 99px; white-space: nowrap;
+  vertical-align: 0.15em; margin-left: 0.5em; letter-spacing: 0.02em;
+}
+.f3 { background: var(--accent); color: var(--chip-ink); }
+.f2 { background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent); }
+.f1 { color: var(--muted); border: 1px solid var(--line); background: var(--surface); }
+td .f { margin-left: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.8rem 1.4rem; margin: 0.8rem 0 0; padding: 0; list-style: none; font-size: 0.88rem; color: var(--muted); }
+.legend li { margin: 0; }
+.qa { margin: 1.2rem 0; }
+.iq {
+  background: var(--accent-soft); border-radius: 10px 10px 10px 3px;
+  padding: 0.65rem 1rem; margin: 0.9rem 0 0.5rem; max-width: 92%;
+}
+.iq b { color: var(--accent-ink); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.ca {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px 10px 3px 10px;
+  padding: 0.65rem 1rem; margin: 0.5rem 0 0.5rem auto; max-width: 92%;
+}
+.ca b { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.note { color: var(--muted); font-size: 0.88rem; font-style: italic; margin: 0.4rem 0 1.1rem; padding-left: 1rem; border-left: 2px dashed var(--line); }
+footer { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+<title>软件与内容 AIoT PRD</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+.meta{display:grid;grid-template-columns:8em 1fr;gap:.2rem 1rem;font-size:.92rem;border:1px solid var(--line);border-radius:8px;padding:.9rem 1.1rem;background:var(--surface);margin:1.2rem 0}
+.meta dt{color:var(--muted);font-weight:700}.meta dd{margin:0}
+.p0{background:var(--accent);color:var(--chip-ink)}.p1{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent)}.p2{color:var(--muted);border:1px solid var(--line);background:var(--surface)}
+.story{border-left:3px solid var(--line);padding:.3rem 1rem;margin:.6rem 0;color:var(--muted);font-size:.95rem}
+.story b{color:var(--ink)}
+td code{white-space:nowrap}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="kicker">Product Requirements · BL4 软件与内容</p>
+  <h1>软件与内容 AIoT 产品需求文档</h1>
+  <p class="lede">xTool 设备云 BL4 业务线的产品需求：让 xTool App 成为设备云的用户入口，让 XCS（xTool Creative Space）从单机切割软件变成连云的加工工作台，让参数库按机型、材料、激光模块健康度动态校正并由真实加工数据反哺，最终承载云素材与订阅。P0 只交付「入口」：App 六个界面与 XCS 云连接，全部复用 BL1 建成的接入、影子、事件、指令、OTA 五条链路。参数动态校正与数据反哺在 P1，订阅在 P2。与《xTool AIoT 平台技术方案》§1 / §6 / §7 / §10 / §17 及工程仓库 x-aiot 一一对应。</p>
+  <ul class="legend">
+    <li><span class="f p0">P0 必须</span> 随 BL1 P0 一起交付，是 BL1 用户故事的实际承载面</li>
+    <li><span class="f p1">P1 应该</span> BL3 耗材健康度可用后的首个迭代</li>
+    <li><span class="f p2">P2 可以</span> 订阅与内容商业化，需支付与法务就位</li>
+  </ul>
+  <dl class="meta">
+    <dt>文档版本</dt><dd>v0.1 评审稿 · 2026-09-18</dd>
+    <dt>业务线</dt><dd>BL4 软件与内容（App + XCS + 参数库 + 云素材），是 BL1 的用户入口，也是 BL3 数据的消费方</dd>
+    <dt>产品目标</dt><dd>用户打开 App 或 XCS 就能看到、控制、优化自己的机器；参数不再靠试，靠数据</dd>
+    <dt>北极星指标</dt><dd>App 设备绑定率 · 订阅转化率</dd>
+    <dt>关联文档</dt><dd>docs/prd-bl1-consumer-laser.md · docs/tech-design-aiot-platform.md · docs/spec.md</dd>
+    <dt>状态</dt><dd>P0 入口部分随 BL1 立项；P1 / P2 待 BL3 健康度与支付能力评审</dd>
+  </dl>
+  <nav class="toc">
+    <p>目录</p>
+    <ol>
+      <li><a href="#01-背景与目标">背景与目标</a></li>
+      <li><a href="#02-用户-场景与用户故事">用户、场景与用户故事</a></li>
+      <li><a href="#03-范围-p0-做什么-不做什么">范围：P0 做什么、不做什么</a></li>
+      <li><a href="#04-功能需求">功能需求</a></li>
+      <li><a href="#05-客户端-app-xcs-需求">客户端（App / XCS）需求</a></li>
+      <li><a href="#06-数据需求">数据需求</a></li>
+      <li><a href="#07-非功能需求与-slo">非功能需求与 SLO</a></li>
+      <li><a href="#08-埋点与指标口径">埋点与指标口径</a></li>
+      <li><a href="#09-里程碑与验收出口">里程碑与验收出口</a></li>
+      <li><a href="#10-依赖-风险与开放问题">依赖、风险与开放问题</a></li>
+    </ol>
+  </nav>
+</header>
+
+<section>
+<h2 id="01-背景与目标"><span class="no">01</span>背景与目标</h2>
+<h3 id="1-1-问题">1.1 问题</h3>
+<ul>
+<li>BL1 建了设备云，但用户看不见它。联网激活、影子、告警、远程控制、OTA 全部需要一个用户面，这个面就是 App。没有 App 承载，BL1 的六个用户故事一个都无法闭环。</li>
+<li>XCS 是用户每天真正打开的软件，但它与机器只在局域网直连，不知道机器的固件版本、模块健康度、历史加工记录。参数库是静态表，同一材料在新模块和老化模块上切出来效果不同，用户只能反复试切。</li>
+<li>参数是激光加工最大的知识门槛，也是社区最活跃的内容。这些知识目前散落在论坛，官方没有回收通道。每天上万次真实加工的结果没有被记录，更没有反哺参数库。</li>
+<li>云素材与订阅是软件业务线的收入目标，但前提是 App 与 XCS 有稠密的日活。没有入口，订阅无从谈起。</li>
+</ul>
+<h3 id="1-2-目标">1.2 目标</h3>
+<ol>
+<li><strong>入口</strong>：App 成为设备云唯一用户入口，BL1 的联网激活、影子、告警、控制、OTA 全部在 App 里可用；XCS 用同一账号看到云端设备与其状态。</li>
+<li><strong>参数</strong>：参数库按机型、模块、材料版本化管理，云端分发，客户端离线可用；P1 按模块健康度动态校正，加工结果反哺推荐。</li>
+<li><strong>内容</strong>：云素材库与订阅在 P2 上线，订阅只影响内容与增值功能，<strong>绝不影响任何安全功能与基础控制</strong>。</li>
+<li><strong>数据</strong>：所有反哺数据需用户显式同意，只含 SN 与加工参数，不含图纸内容。</li>
+</ol>
+<h3 id="1-3-北极星与护栏指标">1.3 北极星与护栏指标</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>定义</th>
+<th>目标</th>
+<th>类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>App 设备绑定率</td>
+<td>已绑定 App 的激活设备 / 激活设备</td>
+<td>P0 ≥ 60%（与 BL1 联网激活率同口径）</td>
+<td>北极星</td>
+</tr>
+<tr>
+<td>订阅转化率</td>
+<td>付费订阅用户 / 月活 App 用户</td>
+<td>P2 ≥ 5%</td>
+<td>北极星</td>
+</tr>
+<tr>
+<td>参数推荐采纳率</td>
+<td>直接使用推荐参数开始加工的任务 / 有推荐的任务</td>
+<td>P1 ≥ 50%</td>
+<td>护栏</td>
+</tr>
+<tr>
+<td>首刀成功率</td>
+<td>同一材料第一次加工即 JOB_DONE 且用户未在 10 分钟内重做的比例</td>
+<td>P1 较静态参数库提升 15%</td>
+<td>护栏</td>
+</tr>
+<tr>
+<td>App 崩溃率</td>
+<td>崩溃会话 / 总会话</td>
+<td>&lt; 0.5%</td>
+<td>护栏</td>
+</tr>
+<tr>
+<td>数据反哺 opt-in 率</td>
+<td>同意上传加工结果的用户比例</td>
+<td>只统计不设目标（合规）</td>
+<td>护栏</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="02-用户-场景与用户故事"><span class="no">02</span>用户、场景与用户故事</h2>
+<h3 id="2-1-目标用户">2.1 目标用户</h3>
+<ul>
+<li><strong>家庭创客</strong>：主要用 App 看机器、收告警；用 XCS 做设计与切割；参数靠官方表和社区帖子。</li>
+<li><strong>小微工作室</strong>：一天十几个任务，最关心「换了新模块参数要不要改」「这块新材料怎么切不焦」；愿意为省时间的内容付费。</li>
+<li><strong>XCS 老用户</strong>：习惯局域网直连，对联网敏感，不能因为云功能让原有本地流程变慢或变复杂。</li>
+</ul>
+<h3 id="2-2-核心用户故事">2.2 核心用户故事</h3>
+<div class="story"><b>US-1 一个 App 管机器</b> 作为用户，我希望配网、看状态、收告警、远程暂停、升级固件都在同一个 App 里完成，不用在多个入口之间切换。</div>
+<div class="story"><b>US-2 XCS 看得见云端机器</b> 作为工作室用户，我希望在 XCS 里用同一账号看到我所有机器是否在线、在做什么、固件是否最新，而不是只能连局域网里的那一台。</div>
+<div class="story"><b>US-3 参数跟着机器走</b> 作为用户，我希望选好材料后 XCS 自动带出适合我这台机器、这个模块、当前健康度的参数，而不是通用表里的默认值。</div>
+<div class="story"><b>US-4 我的结果帮到别人</b> 作为用户，我希望切完一块材料后能一键标记「效果好 / 太焦 / 没切透」，让参数库越用越准；但我要能选择不上传，且上传的不能包含我的图纸。</div>
+<div class="story"><b>US-5 参数库离线可用</b> 作为用户，我希望断网时 XCS 照常能用上次同步的参数库，联网后自动更新，不会因为云端故障切不了东西。</div>
+<div class="story"><b>US-6 订阅不绑架安全</b> 作为用户，我希望不订阅也能收到火焰告警、能远程停机、能升级固件；订阅只解锁素材和高级功能。</div>
+
+
+</section>
+<section>
+<h2 id="03-范围-p0-做什么-不做什么"><span class="no">03</span>范围：P0 做什么、不做什么</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>P0 范围内</th>
+<th>明确不做（留给 P1 / P2）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>App 六个界面：配网、设备卡片、告警中心、指令面板、隐私开关、OTA 设置（承载 BL1 FR-01 到 FR-32 的用户面）</td>
+<td>多用户共享设备与角色（P1，仅 owner）</td>
+</tr>
+<tr>
+<td>XCS 云连接：同账号登录、设备列表与在线状态、当前任务进度只读</td>
+<td>XCS 云端下发加工任务（P1，需白名单扩展与空闲校验）</td>
+</tr>
+<tr>
+<td>参数库 v1：静态表按机型 × 模块 × 材料版本化，云端分发，客户端离线缓存</td>
+<td>按模块健康度动态校正（P1，依赖 BL3 consumable_health）</td>
+</tr>
+<tr>
+<td>加工记录上报：JOB_START / JOB_DONE 携带材料与参数标识（opt-in）</td>
+<td>结果标记与推荐模型（P1）</td>
+</tr>
+<tr>
+<td>参数库读取接口与版本回滚</td>
+<td>云素材库、订阅、支付（P2）</td>
+</tr>
+<tr>
+<td>反哺数据 opt-in 开关与隐私文案</td>
+<td>社区参数分享与评价（P2）</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="04-功能需求"><span class="no">04</span>功能需求</h2>
+<p>编号 FR-4xx，避免与 BL1 的 FR-01 到 FR-32 冲突。每条给需求、验收标准与平台能力。</p>
+<h3 id="4-1-app-作为设备云入口">4.1 App 作为设备云入口</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+<th>平台能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-401 <span class="f p0">P0</span></td>
+<td>配网与绑定：BLE 传递 Wi-Fi 凭据，设备上线后自动出现在「我的设备」；同一账号重复绑定幂等</td>
+<td>承载 BL1 FR-01 / FR-03；配网到显示在线 ≤ 30 s</td>
+<td>bootstrap-svc、device_binding uk_binding_active</td>
+</tr>
+<tr>
+<td>FR-402 <span class="f p0">P0</span></td>
+<td>设备卡片：在线 / 离线、工作状态、进度、剩余时间、腔温、功率档、固件版本，数据新鲜度 ≤ 30 s；离线时显示最后上报时间</td>
+<td>承载 BL1 FR-05 / FR-14；与设备屏幕一致</td>
+<td>deviceapi GET /shadow</td>
+</tr>
+<tr>
+<td>FR-403 <span class="f p0">P0</span></td>
+<td>告警中心：安全告警列表（未读 / 已推送 / 已确认 / 已处理）、事件时间、类型、快照；「我已处理」按钮；历史可查</td>
+<td>承载 BL1 FR-09 到 FR-11；ack 后状态不可逆</td>
+<td>alarm-svc GET /alarms、POST /ack、POST /close</td>
+</tr>
+<tr>
+<td>FR-404 <span class="f p0">P0</span></td>
+<td>指令面板：暂停、停止、自检三个按钮；离线设备按钮置灰并提示；回执超时 10 s 提示未知结果</td>
+<td>承载 BL1 FR-17 / FR-18；remote_restart 不出现在界面</td>
+<td>deviceapi POST /cmd、GET /cmds/{id}</td>
+</tr>
+<tr>
+<td>FR-405 <span class="f p0">P0</span></td>
+<td>隐私开关：摄像头云端存储、加工数据反哺、营销用途三个独立开关，默认全关；每个开关有独立说明文案；撤回后触发删除传导</td>
+<td>承载 BL1 FR-30；开关值走 desired 下发并以 reported 为准显示</td>
+<td>PATCH /desired camera_cloud_optin、job_feedback_optin</td>
+</tr>
+<tr>
+<td>FR-406 <span class="f p0">P0</span></td>
+<td>OTA 设置：自动升级 / 提醒两档；版本说明；升级进度；可推迟 24 h</td>
+<td>承载 BL1 FR-21 / FR-25</td>
+<td>ota-svc、ota_device_task</td>
+</tr>
+<tr>
+<td>FR-407 <span class="f p0">P0</span></td>
+<td>操作审计页：谁在什么时候对我的机器做了什么（App / 客服 / Agent）</td>
+<td>承载 BL1 FR-19；客服操作用户可见</td>
+<td>cmd_audit</td>
+</tr>
+<tr>
+<td>FR-408 <span class="f p1">P1</span></td>
+<td>多用户：owner 可邀请成员，成员可看状态与收告警，不可下指令与改隐私开关</td>
+<td>角色写 device_binding.role；越权 403</td>
+<td>device_binding role</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-2-xcs-云连接">4.2 XCS 云连接</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+<th>平台能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-411 <span class="f p0">P0</span></td>
+<td>XCS 用与 App 相同的账号登录，设备列表与 App 一致，显示在线状态、固件版本、当前任务进度（只读）</td>
+<td>列表与 App 差异 0；状态刷新 ≤ 30 s</td>
+<td>deviceapi GET /shadow，账号体系复用</td>
+</tr>
+<tr>
+<td>FR-412 <span class="f p0">P0</span></td>
+<td>XCS 局域网直连流程不变；云端只读状态不影响本地连接与加工性能</td>
+<td>云端不可达时 XCS 本地功能 100% 可用；无新增阻塞调用</td>
+<td>客户端超时与降级</td>
+</tr>
+<tr>
+<td>FR-413 <span class="f p0">P0</span></td>
+<td>XCS 开始加工时向设备下发任务元数据（job_id、材料 id、参数档 id），设备随 JOB_START / JOB_DONE 事件上报</td>
+<td>events 中 JOB_* 携带 job_id / material_id / param_profile_id；未 opt-in 时字段为空</td>
+<td>物模型 v1.1 任务事件扩展</td>
+</tr>
+<tr>
+<td>FR-414 <span class="f p1">P1</span></td>
+<td>XCS 云端下发加工任务到在线且空闲的设备：文件经对象存储预签名 URL，指令 action=job_start</td>
+<td>白名单扩展需二次评审；非空闲设备拒绝；作业中不可下发</td>
+<td>deviceapi 白名单扩展、影子 work_state 校验</td>
+</tr>
+<tr>
+<td>FR-415 <span class="f p1">P1</span></td>
+<td>XCS 显示模块健康度与建议（来自 BL3）</td>
+<td>与 App 显示一致</td>
+<td>consumable_health</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-3-参数库">4.3 参数库</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+<th>平台能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-421 <span class="f p0">P0</span></td>
+<td>参数库 v1：按 product_key × 模块型号 × 材料 id 组织，每条含功率、速度、遍数、频率等；整库版本化，发布带版本号与变更说明</td>
+<td>覆盖试点机型全部官方材料；版本可回滚；发布需双人审批</td>
+<td>param_profile 表（全局库）、发布接口</td>
+</tr>
+<tr>
+<td>FR-422 <span class="f p0">P0</span></td>
+<td>客户端拉取：按机型增量同步，本地缓存，断网可用；版本不一致时提示更新</td>
+<td>同步 P99 &lt; 2 s；断网 XCS 参数可用</td>
+<td>GET /api/v1/params?product_key=&amp;since_version=</td>
+</tr>
+<tr>
+<td>FR-423 <span class="f p0">P0</span></td>
+<td>用户自定义参数：本地保存并可选同步到账号，多端一致</td>
+<td>自定义参数不进官方库；同步 opt-in</td>
+<td>user_param（分片库，只含 user_id）</td>
+</tr>
+<tr>
+<td>FR-424 <span class="f p1">P1</span></td>
+<td>动态校正：按模块 laser_hours 与 BL3 健康度对功率 / 速度做校正系数，校正范围有上下限，校正原因对用户可见</td>
+<td>校正系数 ∈ [0.8, 1.25]；显示「因模块使用 320 h，功率已上调 6%」</td>
+<td>consumable_health、telemetry_1h laser_hours</td>
+</tr>
+<tr>
+<td>FR-425 <span class="f p1">P1</span></td>
+<td>结果反哺：JOB_DONE 后 XCS / App 提示一键标记「好 / 太焦 / 没切透」，随 job_id 上报；聚合后进入推荐</td>
+<td>只上传 SN、job_id、材料、参数、标记，不含图纸；未 opt-in 不提示</td>
+<td>job_feedback 表、聚合任务</td>
+</tr>
+<tr>
+<td>FR-426 <span class="f p1">P1</span></td>
+<td>推荐：同机型同模块同材料的标记聚合达到样本阈值后，生成推荐档并标注样本数与置信度；官方档与推荐档并列</td>
+<td>样本 ≥ 30 才生成；推荐不覆盖官方档</td>
+<td>推荐服务（离线批处理）</td>
+</tr>
+<tr>
+<td>FR-427 <span class="f p2">P2</span></td>
+<td>社区参数：用户可公开分享参数档，他人可用可评价</td>
+<td>需内容审核；分享者可撤回</td>
+<td>内容平台</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-4-远程监控承载">4.4 远程监控承载</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+<th>平台能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-431 <span class="f p0">P0</span></td>
+<td>App 任务通知：开始、完成、失败、暂停四类，完成含用时与快照；非安全类可按类型关闭</td>
+<td>承载 BL1 FR-13</td>
+<td>alert-svc 非安全通道</td>
+</tr>
+<tr>
+<td>FR-432 <span class="f p0">P0</span></td>
+<td>App 主动拉取一张摄像头快照</td>
+<td>承载 BL1 FR-15；≤ 4 s</td>
+<td>RRPC snapshot</td>
+</tr>
+<tr>
+<td>FR-433 <span class="f p0">P0</span></td>
+<td>App 显示 App 内的错误码说明与自助排障步骤，一键工单附遥测</td>
+<td>承载 BL1 FR-26 / FR-27</td>
+<td>错误码字典、xpilot</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-5-云素材与订阅">4.5 云素材与订阅</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+<th>平台能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-441 <span class="f p2">P2</span></td>
+<td>云素材库：官方与合作方素材，按机型与材料标签检索，XCS 一键导入</td>
+<td>导入后本地可用；版权信息随素材</td>
+<td>内容平台、对象存储</td>
+</tr>
+<tr>
+<td>FR-442 <span class="f p2">P2</span></td>
+<td>订阅：月 / 年两档，解锁素材库、高级参数推荐、多机看板；支付走集团支付平台</td>
+<td>订阅状态多端 5 s 内一致；退订不删已导入素材</td>
+<td>entitlement 服务</td>
+</tr>
+<tr>
+<td>FR-443 <span class="f p2">P2</span></td>
+<td><strong>安全与基础控制不受订阅影响</strong>：告警、停机、自检、OTA、影子对所有用户无条件可用；订阅校验不在这些链路上</td>
+<td>代码层订阅校验只出现在内容与推荐接口</td>
+<td>架构约束</td>
+</tr>
+<tr>
+<td>FR-444 <span class="f p2">P2</span></td>
+<td>订阅到期与续费提醒，App 与 XCS 一致</td>
+<td>提醒不弹在加工进行中</td>
+<td>entitlement 服务</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="05-客户端-app-xcs-需求"><span class="no">05</span>客户端（App / XCS）需求</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CR-01 <span class="f p0">P0</span></td>
+<td>App 与 XCS 共用账号体系与设备列表接口</td>
+<td>同一 user_id，同一 device_binding</td>
+</tr>
+<tr>
+<td>CR-02 <span class="f p0">P0</span></td>
+<td>云功能全部可降级：云端不可达时 App 显示最后已知状态并标注时间，XCS 本地流程零影响</td>
+<td>任何云调用有超时（读 3 s、写 5 s），不阻塞 UI 主线程</td>
+</tr>
+<tr>
+<td>CR-03 <span class="f p0">P0</span></td>
+<td>参数库本地缓存与版本号；启动时后台增量同步</td>
+<td>缓存损坏回退到内置出厂版本</td>
+</tr>
+<tr>
+<td>CR-04 <span class="f p0">P0</span></td>
+<td>隐私开关的显示值以设备 reported 为准，desired 已发未回报时显示「同步中」</td>
+<td>避免用户以为关了实际没关</td>
+</tr>
+<tr>
+<td>CR-05 <span class="f p0">P0</span></td>
+<td>崩溃与性能上报（不含用户内容）；崩溃率进看板</td>
+<td>复用集团 APM</td>
+</tr>
+<tr>
+<td>CR-06 <span class="f p0">P0</span></td>
+<td>指令按钮防抖：同一指令回执未返回前不可重复点击</td>
+<td>对应预推演 INC-14</td>
+</tr>
+<tr>
+<td>CR-07 <span class="f p1">P1</span></td>
+<td>XCS 任务元数据在本地生成 job_id（UUID），随局域网加工指令下发给设备</td>
+<td>设备原样带回 JOB_* 事件</td>
+</tr>
+<tr>
+<td>CR-08 <span class="f p1">P1</span></td>
+<td>结果标记提示只在 JOB_DONE 后 10 分钟内出现一次，可关闭</td>
+<td>不打扰</td>
+</tr>
+<tr>
+<td>CR-09 <span class="f p2">P2</span></td>
+<td>订阅状态本地缓存 24 h，过期前后台刷新</td>
+<td>离线仍可用已解锁内容</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="06-数据需求"><span class="no">06</span>数据需求</h2>
+<h3 id="6-1-物模型-v1-1-扩展-在-bl1-v1-之上">6.1 物模型 v1.1 扩展（在 BL1 v1 之上）</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>项</th>
+<th>类型 / 取值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>事件</td>
+<td>JOB_START / JOB_DONE / JOB_FAIL / JOB_PAUSE</td>
+<td>新增字段 job_id string、material_id string、param_profile_id string、params_hash string</td>
+<td>未 opt-in 时字段为空；未知字段透传</td>
+</tr>
+<tr>
+<td>属性</td>
+<td>module_model</td>
+<td>string，激光模块型号</td>
+<td>上线时上报，参数库按它索引</td>
+</tr>
+<tr>
+<td>属性</td>
+<td>job_feedback_optin</td>
+<td>bool（desired 下发）</td>
+<td>反哺开关</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="6-2-新增表">6.2 新增表</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>库</th>
+<th>表</th>
+<th>关键列</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全局库</td>
+<td>material</td>
+<td>material_id PK, name, category, thickness_mm, vendor</td>
+<td>官方材料字典</td>
+</tr>
+<tr>
+<td>全局库</td>
+<td>param_profile</td>
+<td>id, product_key, module_model, material_id, version, params JSONB, source(official/recommended), sample_count, released_at, approved_by</td>
+<td>版本化；official 与 recommended 并列</td>
+</tr>
+<tr>
+<td>全局库</td>
+<td>param_release</td>
+<td>version PK, product_key, note, created_by, approved_by, released_at</td>
+<td>整库发布记录，可回滚</td>
+</tr>
+<tr>
+<td>分片库</td>
+<td>job_record</td>
+<td>job_id PK, sn, material_id, param_profile_id, params_hash, started_at, finished_at, outcome</td>
+<td>只含 SN；opt-in 才写</td>
+</tr>
+<tr>
+<td>分片库</td>
+<td>job_feedback</td>
+<td>job_id PK, sn, rating(good/burnt/uncut), created_at</td>
+<td>只含 SN</td>
+</tr>
+<tr>
+<td>分片库</td>
+<td>user_param</td>
+<td>id, user_id, product_key, module_model, material_id, params JSONB, synced_at</td>
+<td>用户自定义，只含 user_id</td>
+</tr>
+<tr>
+<td>全局库（P2）</td>
+<td>asset、entitlement、subscription</td>
+<td>—</td>
+<td>内容与订阅，随 P2 设计</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="6-3-数据归属与保留">6.3 数据归属与保留</h3>
+<ul>
+<li>参数库与材料字典：全局库，长期保留，版本只增。</li>
+<li>加工记录与反哺标记：分片库，只含 SN，保留 2 年；用户撤回 opt-in 后停止写入并删除既有记录（走 BL1 删除传导）。</li>
+<li>图纸与加工文件：<strong>不上云</strong>（P1 云端下发任务除外，且经预签名 URL 24 h 生命周期，不持久化）。</li>
+<li>推荐模型输入只用聚合后的匿名统计，不回溯到单个 SN。</li>
+</ul>
+
+</section>
+<section>
+<h2 id="07-非功能需求与-slo"><span class="no">07</span>非功能需求与 SLO</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>参数库读取</td>
+<td>GET /params P99 &lt; 200 ms；增量同步 P99 &lt; 2 s</td>
+</tr>
+<tr>
+<td>参数库可用性</td>
+<td>99.9%；不可用时客户端用本地缓存，用户无感</td>
+</tr>
+<tr>
+<td>参数发布</td>
+<td>发布到全量客户端可见 ≤ 10 min；回滚 ≤ 5 min</td>
+</tr>
+<tr>
+<td>设备列表一致性</td>
+<td>App 与 XCS 显示差异 0；状态新鲜度 ≤ 30 s（复用影子 SLO）</td>
+</tr>
+<tr>
+<td>订阅校验（P2）</td>
+<td>P99 &lt; 100 ms；不可用时按本地缓存放行已解锁内容，绝不阻断安全与基础控制</td>
+</tr>
+<tr>
+<td>隐私</td>
+<td>反哺数据只含 SN；图纸不上云；开关以 reported 为准</td>
+</tr>
+<tr>
+<td>客户端性能</td>
+<td>App 冷启动 &lt; 2 s；XCS 新增云调用不增加加工开始延迟</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="08-埋点与指标口径"><span class="no">08</span>埋点与指标口径</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>埋点 / 数据源</th>
+<th>口径说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>App 设备绑定率</td>
+<td>device_binding.bound_at、device.activated_at</td>
+<td>与 BL1 联网激活率同分母</td>
+</tr>
+<tr>
+<td>参数推荐采纳率</td>
+<td>JOB_START.param_profile_id 是否为推荐档或官方档</td>
+<td>分母为有可用推荐的任务</td>
+</tr>
+<tr>
+<td>首刀成功率</td>
+<td>job_record 同 sn 同 material_id 10 分钟内是否有第二次 JOB_START</td>
+<td>需 opt-in 用户样本，报告时注明覆盖率</td>
+</tr>
+<tr>
+<td>反哺 opt-in 率</td>
+<td>影子 reported.job_feedback_optin</td>
+<td>只统计</td>
+</tr>
+<tr>
+<td>参数库同步成功率</td>
+<td>客户端上报 sync_ok / sync_total</td>
+<td>按版本切片</td>
+</tr>
+<tr>
+<td>XCS 云连接采用率</td>
+<td>XCS 登录且设备列表非空的会话 / XCS 总会话</td>
+<td></td>
+</tr>
+<tr>
+<td>订阅转化率（P2）</td>
+<td>subscription 表</td>
+<td>月活口径与 App 一致</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="09-里程碑与验收出口"><span class="no">09</span>里程碑与验收出口</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>时间</th>
+<th>交付</th>
+<th>决策门</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P0 入口</td>
+<td>随 BL1 迭代 1 到 4</td>
+<td>App 六界面接 deviceapi / alarm-svc / ota-svc；XCS 云端设备列表只读；参数库 v1 静态分发与离线缓存；JOB_* 事件扩展</td>
+<td>BL1 P0 出口同时验收：50 台模拟设备在 App 与 XCS 可见；火焰告警在 App 可确认</td>
+</tr>
+<tr>
+<td>P1 参数</td>
+<td>BL3 健康度可用后 2 个迭代</td>
+<td>动态校正、结果标记、推荐档生成、XCS 云端下发任务</td>
+<td>首刀成功率提升 ≥ 15%（opt-in 样本）；校正系数上下限经固件团队确认</td>
+</tr>
+<tr>
+<td>P2 内容</td>
+<td>支付与法务就位后</td>
+<td>云素材库、订阅、entitlement</td>
+<td>FR-443 安全不受订阅影响经代码审查签字</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout"><b>P0 验收清单</b>：① App 六界面全部走通 BL1 冒烟五步（影子、desired、指令、指令结果、告警）；② XCS 云端不可达时本地加工零影响（断网测试）；③ 参数库离线可用与版本回滚演练；④ 隐私开关以 reported 为准的显示逻辑测试通过；⑤ JOB_* 事件在未 opt-in 时字段为空经数据字典审计。</div>
+
+</section>
+<section>
+<h2 id="10-依赖-风险与开放问题"><span class="no">10</span>依赖、风险与开放问题</h2>
+<h3 id="10-1-依赖">10.1 依赖</h3>
+<ul>
+<li><strong>BL1 平台</strong>：deviceapi、alarm-svc、ota-svc 接口冻结；物模型 v1.1 扩展进固件排期。</li>
+<li><strong>XCS 团队</strong>：账号登录、设备列表、job_id 生成与下发、参数库同步四个改动点。</li>
+<li><strong>BL3</strong>：consumable_health 与 laser_hours 降采样是 P1 动态校正的输入。</li>
+<li><strong>固件</strong>：module_model 上报、JOB_* 事件带 job_id 与材料参数字段。</li>
+<li><strong>法务</strong>：反哺数据的同意文案、图纸不上云的承诺、推荐结果的免责声明。</li>
+<li><strong>支付与内容平台</strong>（P2）：集团支付、素材版权与审核。</li>
+</ul>
+<h3 id="10-2-风险与对策">10.2 风险与对策</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>风险</th>
+<th>影响</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>动态校正把参数调错，烧坏材料甚至起火</td>
+<td>安全与信任</td>
+<td>校正系数硬上限 [0.8, 1.25]；校正原因可见；用户可一键回到官方档；起火类安全事件与推荐档关联统计，异常即下线该档</td>
+</tr>
+<tr>
+<td>XCS 云功能拖慢本地加工</td>
+<td>老用户流失</td>
+<td>CR-02 强制降级与超时；云调用不在加工关键路径</td>
+</tr>
+<tr>
+<td>反哺数据被认为泄露图纸</td>
+<td>隐私争议</td>
+<td>只传参数与标记，不传文件；数据字典审计；文案明示</td>
+</tr>
+<tr>
+<td>推荐档样本被少数用户刷偏</td>
+<td>参数质量</td>
+<td>样本阈值 30；按 SN 去重；异常标记率检测</td>
+</tr>
+<tr>
+<td>订阅误伤安全功能</td>
+<td>品牌与合规风险</td>
+<td>FR-443 做成架构约束与代码审查项</td>
+</tr>
+<tr>
+<td>App 与 XCS 两个团队节奏不一致</td>
+<td>入口体验割裂</td>
+<td>共用接口与设备列表契约，先冻结后开发</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="10-3-开放问题">10.3 开放问题</h3>
+<ol>
+<li>XCS 云端下发任务（FR-414）是否进 P1？涉及指令白名单扩展与文件上云，需安全与法务同时评审。</li>
+<li>推荐档是否允许覆盖官方档的默认选中？建议并列展示，默认仍官方档。</li>
+<li>module_model 能否由固件可靠上报，还是需用户在 App 手动选择？</li>
+<li>反哺 opt-in 是否给积分或订阅折扣？涉及合规（同意不得以利益诱导过度）。</li>
+<li>订阅定价与 BL3 耗材复购的组合策略归哪条业务线主导。</li>
+</ol></section>
+
+<footer>
+  <p>软件与内容 AIoT PRD v0.1 · BL4 是 BL1 的用户面与 BL3 的数据消费方；P0 只做入口，参数动态校正与数据反哺在 P1，订阅在 P2。安全与基础控制永不受订阅影响是本文唯一不可协商的约束。待校准项：XCS 云端下发任务的评审结论、module_model 上报可行性、反哺样本阈值。</p>
+</footer>
+</div>
+
+</body>
+</html>

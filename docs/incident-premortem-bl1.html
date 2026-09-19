@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --ink: #1c2733;
+  --muted: #56687a;
+  --accent: #0b7285;
+  --accent-ink: #085d6e;
+  --accent-soft: rgba(11, 114, 133, 0.08);
+  --warn: #b4540a;
+  --warn-soft: rgba(180, 84, 10, 0.07);
+  --line: #dbe3e9;
+  --code-bg: #eef3f5;
+  --code-ink: #14424c;
+  --chip-ink: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161b;
+    --surface: #171f26;
+    --ink: #e3ebf0;
+    --muted: #93a5b2;
+    --accent: #4fc0d3;
+    --accent-ink: #6fd0e0;
+    --accent-soft: rgba(79, 192, 211, 0.1);
+    --warn: #e8964e;
+    --warn-soft: rgba(232, 150, 78, 0.09);
+    --line: #2a3640;
+    --code-bg: #1d2830;
+    --code-ink: #a9d8e2;
+    --chip-ink: #0e1418;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10161b;
+  --surface: #171f26;
+  --ink: #e3ebf0;
+  --muted: #93a5b2;
+  --accent: #4fc0d3;
+  --accent-ink: #6fd0e0;
+  --accent-soft: rgba(79, 192, 211, 0.1);
+  --warn: #e8964e;
+  --warn-soft: rgba(232, 150, 78, 0.09);
+  --line: #2a3640;
+  --code-bg: #1d2830;
+  --code-ink: #a9d8e2;
+  --chip-ink: #0e1418;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  line-height: 1.85;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 5rem; }
+header { margin-bottom: 2.5rem; }
+.kicker {
+  font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin: 0 0 0.8rem;
+}
+h1 {
+  font-family: "Noto Serif SC", serif; font-weight: 900;
+  font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.25;
+  margin: 0 0 1rem; text-wrap: balance;
+}
+.lede { color: var(--muted); margin: 0; max-width: 40rem; }
+nav.toc {
+  margin: 2.2rem 0 0; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); padding: 1.1rem 1.3rem;
+}
+nav.toc p { margin: 0 0 0.5rem; font-size: 0.78rem; letter-spacing: 0.14em; color: var(--muted); font-weight: 700; }
+nav.toc ol {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.15rem 1.5rem;
+}
+nav.toc a { color: var(--ink); text-decoration: none; font-size: 0.93rem; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent-ink); }
+nav.toc li::before { content: counter(list-item, decimal-leading-zero) " "; color: var(--accent); font-family: "JetBrains Mono", monospace; font-size: 0.8rem; }
+section { margin-top: 3.5rem; }
+h2 {
+  font-family: "Noto Serif SC", serif; font-weight: 700;
+  font-size: 1.5rem; line-height: 1.4; margin: 0 0 0.4rem;
+  padding-top: 1.2rem; border-top: 2px solid var(--accent); text-wrap: balance;
+}
+h2 .no { font-family: "JetBrains Mono", monospace; font-size: 0.9rem; color: var(--accent); margin-right: 0.6em; font-weight: 600; }
+h3 {
+  font-weight: 700; font-size: 1.08rem; margin: 2rem 0 0.5rem; text-wrap: balance;
+}
+h3::before { content: "▸ "; color: var(--accent); }
+p { margin: 0.6rem 0; }
+.why { color: var(--muted); font-size: 0.92rem; margin-top: -0.1rem; }
+ul, ol { margin: 0.5rem 0 0.9rem; padding-left: 1.4rem; }
+li { margin: 0.3rem 0; }
+li::marker { color: var(--accent); }
+strong { font-weight: 700; }
+code {
+  font-family: "JetBrains Mono", "Menlo", monospace; font-size: 0.85em;
+  background: var(--code-bg); color: var(--code-ink);
+  padding: 0.1em 0.4em; border-radius: 4px;
+}
+pre {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0.8rem 0 1.2rem;
+}
+pre code { background: none; padding: 0; font-size: 0.84rem; line-height: 1.7; }
+.tablebox { overflow-x: auto; margin: 0.8rem 0 1.2rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.6; }
+th, td { text-align: left; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.8rem; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+.fix { border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0; }
+.fix b { color: var(--warn); }
+.callout {
+  border-left: 3px solid var(--accent); background: var(--accent-soft);
+  border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0;
+}
+.callout b { color: var(--accent-ink); }
+.f {
+  font-family: "JetBrains Mono", monospace; font-size: 0.68rem; font-weight: 600;
+  padding: 0.1em 0.55em; border-radius: 99px; white-space: nowrap;
+  vertical-align: 0.15em; margin-left: 0.5em; letter-spacing: 0.02em;
+}
+.f3 { background: var(--accent); color: var(--chip-ink); }
+.f2 { background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent); }
+.f1 { color: var(--muted); border: 1px solid var(--line); background: var(--surface); }
+td .f { margin-left: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.8rem 1.4rem; margin: 0.8rem 0 0; padding: 0; list-style: none; font-size: 0.88rem; color: var(--muted); }
+.legend li { margin: 0; }
+.qa { margin: 1.2rem 0; }
+.iq {
+  background: var(--accent-soft); border-radius: 10px 10px 10px 3px;
+  padding: 0.65rem 1rem; margin: 0.9rem 0 0.5rem; max-width: 92%;
+}
+.iq b { color: var(--accent-ink); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.ca {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px 10px 3px 10px;
+  padding: 0.65rem 1rem; margin: 0.5rem 0 0.5rem auto; max-width: 92%;
+}
+.ca b { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.note { color: var(--muted); font-size: 0.88rem; font-style: italic; margin: 0.4rem 0 1.1rem; padding-left: 1rem; border-left: 2px dashed var(--line); }
+footer { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+.meta{display:grid;grid-template-columns:6em 1fr;gap:.2rem 1rem;font-size:.92rem;border:1px solid var(--line);border-radius:8px;padding:.9rem 1.1rem;background:var(--surface);margin:1.2rem 0}
+.meta dt{color:var(--muted);font-weight:700}.meta dd{margin:0}
+h3 code{font-size:.8rem;vertical-align:.1em;margin-right:.2em}
+b.k{display:inline-block;color:var(--accent-ink);font-size:.78rem;letter-spacing:.1em;font-weight:700;margin-right:.5em;min-width:4.5em}
+td code{white-space:nowrap}
+section{margin-top:3rem}
+</style>
+</head>
+<body>
+<title>BL1 事故预推演</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<div class="wrap">
+<header>
+  <p class="kicker">Incident Pre-mortem · BL1 消费级整机</p>
+  <h1>线上事故预推演与处置方案</h1>
+  <p class="lede">在设备铺出去之前，沿接入、数据、告警、指令、OTA 五条核心链路与隐私、产线两条支线，逐段推演 27 个最可能的线上事故：怎么触发、怎么传播、看哪个指标能第一时间发现、前 15 分钟做什么、之后怎么恢复、怎么根治、怎么在 staging 复现。与 PRD、技术方案及工程仓库 x-aiot 的服务、指标名、命令一一对应。</p>
+  <ul class="legend">
+    <li><span class="f f3">S1</span> 安全链路失效 / 刷砖 / 停线，15 分钟内止血</li>
+    <li><span class="f f2">S2</span> 核心链路 ≥ 10% 设备不可用</li>
+    <li><span class="f f1">S3 / S4</span> 单链路降级 / 内部指标异常</li>
+  </ul>
+  <dl class="meta">
+    <dt>文档版本</dt><dd>v0.1 · 2026-09-18</dd>
+    <dt>目的</dt><dd>在设备铺出去之前，把最可能发生的线上事故逐个推演一遍：怎么触发、怎么传播、看哪个指标能第一时间发现、前 15 分钟做什么、之后怎么恢复、怎么根治、怎么在 staging 复现</dd>
+    <dt>方法</dt><dd>沿五条核心链路（接入 / 数据 / 告警 / 指令 / OTA）加隐私与产线两条支线逐段问「这里挂了会怎样」；每条事故落到具体服务、指标名、命令</dd>
+    <dt>前置</dt><dd>docs/incident-register-storm.md（一次真实事故的复盘，本文多条处置源自它）· docs/drill-runbook.md（单元容灾六步）</dd>
+  </dl>
+  <nav class="toc">
+    <p>目录</p>
+    <ol>
+      <li><a href="#0-通用规则">通用规则</a></li>
+      <li><a href="#1-事故清单总览">事故清单总览</a></li>
+      <li><a href="#2-接入链路">接入链路</a></li>
+      <li><a href="#3-数据链路">数据链路</a></li>
+      <li><a href="#4-安全告警链路">安全告警链路</a></li>
+      <li><a href="#5-指令链路">指令链路</a></li>
+      <li><a href="#6-ota-链路">OTA 链路</a></li>
+      <li><a href="#7-隐私合规">隐私合规</a></li>
+      <li><a href="#8-产线与激活">产线与激活</a></li>
+      <li><a href="#9-运维">运维</a></li>
+      <li><a href="#10-临时关闭保护登记表">临时关闭保护登记表</a></li>
+      <li><a href="#11-演练计划">演练计划</a></li>
+      <li><a href="#12-p0-出口前必须补齐的能力">P0 出口前必须补齐的能力</a></li>
+    </ol>
+  </nav>
+</header>
+
+<h2 id="0-通用规则"><span class="no">00</span>通用规则</h2>
+<h3 id="0-1-事故分级">0.1 事故分级</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>级别</th>
+<th>定义</th>
+<th>响应</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="f f3">S1</span></td>
+<td>安全告警链路失效，或有设备被 OTA 刷砖，或产线停线</td>
+<td>立即，全员，15 分钟内止血</td>
+<td>火焰事件未推送；fused 未触发</td>
+</tr>
+<tr>
+<td><span class="f f2">S2</span></td>
+<td>核心链路对 ≥ 10% 设备不可用超过 5 分钟</td>
+<td>15 分钟内响应</td>
+<td>重连风暴；auth 全拒</td>
+</tr>
+<tr>
+<td><span class="f f1">S3</span></td>
+<td>单链路降级，用户可感知但有替代</td>
+<td>1 小时内响应</td>
+<td>影子延迟 &gt; 30 s；指令回执丢</td>
+</tr>
+<tr>
+<td><span class="f f1">S4</span></td>
+<td>内部指标异常，用户无感</td>
+<td>工作时间处理</td>
+<td>poison 计数上升；分区未预建</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="0-2-处置四原则">0.2 处置四原则</h3>
+<ol>
+<li><strong>先止血再定位</strong>。止血动作必须是本文列出的、事先验证过的动作，不在事故中即兴发明。</li>
+<li><strong>安全链路优先</strong>。任何止血动作不得降低 alarm-svc 的可用性。要在 pipeline 与 alarm 之间取舍时，牺牲 pipeline。</li>
+<li><strong>临时关闭的保护必须登记</strong>。关掉任何一道护栏（限流、熔断、审批、squelch）时，同时在 §10 的登记表写一行并设到点提醒。历史教训：一段签名校验临时关掉后三天才想起来。</li>
+<li><strong>报数字先报口径</strong>。事故通报里每个数字都要写清来自哪个指标、哪个时间窗。</li>
+</ol>
+<h3 id="0-3-前-15-分钟通用检查单">0.3 前 15 分钟通用检查单</h3>
+<pre><code class="language-bash"># 1 五个服务健康与关键计数（生产替换为 Grafana 面板）
+for p in 8081 8082 8083 8085 8086 8087 8088 8089; do curl -s -m 2 localhost:$p/healthz || echo &quot;DOWN $p&quot;; done
+curl -s localhost:8084/metrics          # conn-gate: accepted rejected_rate rejected_breaker active upstream_fail breaker_open
+curl -s localhost:8089/metrics          # pipeline: consumed poison dup nak lag batches rows_written
+curl -s localhost:8088/metrics          # bridge: received published dropped_telemetry buffered buffer_len publish_err
+curl -s localhost:8085/metrics          # alarm: events_squelched squelch_redis_errors ...
+# 2 JetStream 积压
+nats consumer info IOT_UP pipeline-1 | grep -i pending
+nats consumer info IOT_UP alarm      | grep -i pending
+# 3 在线数与最近 5 分钟事件
+redis-cli get online:1; redis-cli get online:2
+psql -c &quot;SELECT status, count(*) FROM iot_shard.alarm WHERE created_at &gt; now()-interval '5 min' GROUP BY 1&quot;
+# 4 最近一次变更：发布、配置、OTA 批次、证书操作
+psql -c &quot;SELECT id,stage,status,ok_count,fail_count,created_at FROM iot_global.ota_batch ORDER BY id DESC LIMIT 5&quot;
+</code></pre>
+<p>先看「最近一次变更」。多数事故是变更引起的，回滚变更是最快的止血。</p>
+
+<h2 id="1-事故清单总览"><span class="no">01</span>事故清单总览</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>事故</th>
+<th>链路</th>
+<th>级别</th>
+<th>第一检测信号</th>
+<th>止血时限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#inc-01-重连风暴"><code>INC-01</code></a></td>
+<td>重连风暴：云端重启或令牌集中过期后设备同步重连</td>
+<td>接入</td>
+<td><span class="f f2">S2</span></td>
+<td>conn-gate rejected_rate 陡升，握手曲线锯齿</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-02-认证全拒"><code>INC-02</code></a></td>
+<td>认证全拒：auth-svc 依赖的 PG 不可达，fail-closed 放大</td>
+<td>接入</td>
+<td><span class="f f2">S2</span></td>
+<td>auth deny 比例 &gt; 50%，online 下降</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td><a href="#inc-03-证书误吊销"><code>INC-03</code></a></td>
+<td>证书误吊销：批量操作把在用证书标 revoked</td>
+<td>接入</td>
+<td><span class="f f2">S2</span></td>
+<td>deny 原因 cert status revoked 集中</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td><a href="#inc-04-熔断误开"><code>INC-04</code></a></td>
+<td>熔断误开：EMQX 慢但没死，conn-gate 把所有连接 RST</td>
+<td>接入</td>
+<td><span class="f f2">S2</span></td>
+<td>breaker_open=1 且 EMQX 进程存活</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-05-jetstream-不可用或磁盘满"><code>INC-05</code></a></td>
+<td>JetStream 不可用或磁盘满</td>
+<td>数据</td>
+<td><span class="f f2">S2</span></td>
+<td>bridge publish_err 上升，buffer_len 增长</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-06-tdengine-写失败"><code>INC-06</code></a></td>
+<td>TDengine 写失败：Nak 风暴、lag 涨</td>
+<td>数据</td>
+<td><span class="f f1">S3</span></td>
+<td>pipeline nak 上升，NumPending 增长</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-07-redis-故障"><code>INC-07</code></a></td>
+<td>Redis 故障：幂等放行、影子停更、指令结果丢</td>
+<td>数据</td>
+<td><span class="f f1">S3</span></td>
+<td>dedupe_redis_err、shadow_err 上升</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-08-毒消息激增"><code>INC-08</code></a></td>
+<td>毒消息：固件上报字段变更导致 poison 激增</td>
+<td>数据</td>
+<td><span class="f f1">S3</span></td>
+<td>poison / consumed &gt; 1%</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-09-消费-lag-超-30-s"><code>INC-09</code></a></td>
+<td>消费 lag 超 30 s：单 flusher 饱和</td>
+<td>数据</td>
+<td><span class="f f1">S3</span></td>
+<td>NumPending 持续增长，批大小分布偏向窗口触发</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-10-火焰事件漏告警-s1"><code>INC-10</code></a></td>
+<td>火焰事件漏告警</td>
+<td>告警</td>
+<td><span class="f f3">S1</span></td>
+<td>alarm 消费组 pending 增长；事件明细有 FLAME 但 alarm 表无行</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-11-误报风暴"><code>INC-11</code></a></td>
+<td>误报风暴：一批传感器缺陷触发上万条 OVER_TEMP</td>
+<td>告警</td>
+<td><span class="f f2">S2</span></td>
+<td>alarm open 数每分钟 &gt; 100；同 code 同机型集中</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-12-升级短信异常"><code>INC-12</code></a></td>
+<td>升级短信异常：重复发送或该发不发</td>
+<td>告警</td>
+<td><span class="f f2">S2</span></td>
+<td>escalated 计数与 notified 超时数不匹配</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-13-误停机"><code>INC-13</code></a></td>
+<td>误停机：客服或 Agent 对错误设备下 stop</td>
+<td>指令</td>
+<td><span class="f f2">S2</span></td>
+<td>cmd_audit source=support 突增</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-14-指令回执丢失"><code>INC-14</code></a></td>
+<td>指令回执丢失：设备执行了但用户看到未知</td>
+<td>指令</td>
+<td><span class="f f1">S3</span></td>
+<td>cmd_audit acked_at 为空比例 &gt; 10%</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-15-deviceapi-被刷"><code>INC-15</code></a></td>
+<td>deviceapi 被刷：App 故障重试或恶意</td>
+<td>指令</td>
+<td><span class="f f1">S3</span></td>
+<td>429 比例上升，PG 连接池满</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-16-刷坏一批固件且熔断未触发-s1"><code>INC-16</code></a></td>
+<td>刷坏一批固件且熔断未触发</td>
+<td>OTA</td>
+<td><span class="f f3">S1</span></td>
+<td>rolled_back / failed 上升但 status 仍 running</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-17-灰度范围失控"><code>INC-17</code></a></td>
+<td>灰度范围失控：抽样错误或档位越级</td>
+<td>OTA</td>
+<td><span class="f f3">S1</span></td>
+<td>target_total 与档位百分比不符</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-18-cdn-故障导致误熔断"><code>INC-18</code></a></td>
+<td>CDN 故障导致误熔断</td>
+<td>OTA</td>
+<td><span class="f f1">S3</span></td>
+<td>failed 的 error_code 全是下载类</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-19-作业中升级"><code>INC-19</code></a></td>
+<td>作业中升级：idle_only 未生效</td>
+<td>OTA</td>
+<td><span class="f f2">S2</span></td>
+<td>JOB_FAIL 与 OTA_PROGRESS 同 SN 时间重叠</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-20-未-opt-in-画面落云存储-s1"><code>INC-20</code></a></td>
+<td>未 opt-in 画面落云存储</td>
+<td>隐私</td>
+<td><span class="f f3">S1</span></td>
+<td>对象存储审计：写入 SN 的 camera_cloud_optin=false</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-21-删除传导失败"><code>INC-21</code></a></td>
+<td>删除传导失败：删号后仍可关联</td>
+<td>隐私</td>
+<td><span class="f f2">S2</span></td>
+<td>传导任务失败计数</td>
+<td>24 h 内</td>
+</tr>
+<tr>
+<td><a href="#inc-22-产线停线-s1"><code>INC-22</code></a></td>
+<td>产线停线：cf001-svc 或其依赖不可用</td>
+<td>产线</td>
+<td><span class="f f3">S1</span></td>
+<td>/sign 5xx 或超时，产线告警</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td><a href="#inc-23-配额异常"><code>INC-23</code></a></td>
+<td>配额异常：超发或被吃光</td>
+<td>产线</td>
+<td><span class="f f2">S2</span></td>
+<td>registered 增速异常，同 IP 大量 /sign</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-24-月初-cmd_audit-分区缺失"><code>INC-24</code></a></td>
+<td>月初 cmd_audit 分区缺失，审计落库停止</td>
+<td>运维</td>
+<td><span class="f f1">S3</span></td>
+<td>IOT_CMD 消费组 pending 增长，PG 报 no partition</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-25-单元整体故障"><code>INC-25</code></a></td>
+<td>单元整体故障</td>
+<td>运维</td>
+<td><span class="f f2">S2</span></td>
+<td>online:{cell} 归零</td>
+<td>30 min RTO</td>
+</tr>
+<tr>
+<td><a href="#inc-26-emqx-连接数触顶"><code>INC-26</code></a></td>
+<td>EMQX 连接数触顶：license 或 nofile</td>
+<td>运维</td>
+<td><span class="f f2">S2</span></td>
+<td>EMQX 拒连，conn-gate upstream_fail 上升</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-27-时钟漂移"><code>INC-27</code></a></td>
+<td>时钟漂移：设备 ts 偏差导致纠偏错乱、dedupe 失效</td>
+<td>运维</td>
+<td><span class="f f1">S3</span></td>
+<td>recv_ts 与 payload.ts 差值分布异常</td>
+<td>1 h</td>
+</tr>
+</tbody>
+</table></div>
+
+<h2 id="2-接入链路"><span class="no">02</span>接入链路</h2>
+<h3 id="inc-01-重连风暴"><code>INC-01</code> 重连风暴</h3>
+<p><b class="k">触发</b>云端接入层重启、EMQX 滚动升级、区域网络抖动、或一批设备的会话在同一时间窗失效。设备同步重连。若其中有固件退避有缺陷（固定间隔），重连速率不会衰减。</p>
+<p><b class="k">传播</b>TCP 握手挤占 EMQX CPU → TLS 握手排队 → 已连接设备心跳超时掉线 → 更多重连。没有 conn-gate 时 5 分钟内 broker 雪崩。</p>
+<p><strong>检测信号</strong></p>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>阈值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>conn-gate rejected_rate</td>
+<td>每秒增量 &gt; IOT_GATE_RPS 的 20% 持续 1 分钟</td>
+</tr>
+<tr>
+<td>握手速率曲线形态</td>
+<td>平台形正常（令牌桶在工作）；锯齿形说明有设备不退避</td>
+</tr>
+<tr>
+<td>online:{cell}</td>
+<td>下降后 15 分钟内未回到基线 90%</td>
+</tr>
+<tr>
+<td>conn-gate active vs EMQX 连接数</td>
+<td>应相等；不等说明有假成功</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>止血（15 分钟内）</strong></p>
+<ol>
+<li>确认 conn-gate 在工作：rejected_rate 在涨、breaker_open=0、EMQX 未重启。如果是，<strong>不要动令牌桶</strong>，风暴正在被压平，等退避生效。</li>
+<li>如果 EMQX 已在抖动：临时调低令牌桶到当前 EMQX 能承受的握手速率（重启 conn-gate 带新 IOT_GATE_RPS，生产用 Redis 集中桶热调）。登记到 §10。</li>
+<li>如果单元已过载：<code>curl -XPOST :8081/internal/cells/1/overload -d '{"overloaded":true}'</code>，bootstrap 对该 cell 返回 retry_after=30，让还没连上的设备晚点来。</li>
+</ol>
+<p><b class="k">恢复</b>观察 15 分钟回归曲线。回归 ≥ 99% 后取消 overload 标记，令牌桶调回默认，关闭登记项。</p>
+<p><strong>根治</strong></p>
+<ul>
+<li>从 conn-gate 日志或 EMQX 连接日志导出锯齿形重连的 SN 清单，比对 fw_version，定位不退避的固件版本，走 OTA 修复。这是固件红线 DR-01 的违反。</li>
+<li>会话过期时间加随机抖动，避免集中过期。</li>
+</ul>
+<p><b class="k">演练</b><code>loadgen storm -n 3000 -burst</code> + <code>device-simulator -n 500 -bad-firmware 0.05</code>。通过标准见 docs/drill-runbook.md §2。</p>
+
+<h3 id="inc-02-认证全拒"><code>INC-02</code> 认证全拒</h3>
+<p><b class="k">触发</b>auth-svc 依赖的 PG 分片库不可达、连接池耗尽、或 device 表被误改（status 批量置 manufactured）。auth-svc 是 fail-closed：查库出错一律 deny。</p>
+<p><b class="k">传播</b>新连接全部被拒 → 设备进入退避 → 已连接设备暂不受影响（EMQX 不重复认证）→ 但任何原因掉线的设备都回不来 → 在线数缓慢下降 → 15 分钟后进入 INC-01 形态。</p>
+<p><b class="k">检测信号</b>auth-svc 日志 deny 原因分布，store error 占比 &gt; 10% 即告警。online 缓慢下降。</p>
+<p><strong>止血</strong></p>
+<ol>
+<li>确认 PG 状态。如果是连接池耗尽：先看是谁占了连接（<code>pg_stat_activity</code>），通常是 deviceapi 的 telemetry 查询或 OTA 圈选慢 SQL，先 kill 那些查询。</li>
+<li>如果 PG 短时间无法恢复：auth-svc 启用<strong>本地缓存兜底</strong>（生产必备，原型未实现）：最近 24 小时成功认证过的 (sn, cert_fp) 在 PG 不可达时允许通过。这是有意的 fail-open 降级，仅限已知设备，必须登记并在 PG 恢复后 1 小时内关闭。</li>
+<li>如果是 device 表被误改：从审计日志找到 UPDATE 语句，按 SN 集合回滚 status。</li>
+</ol>
+<p><b class="k">恢复</b>PG 恢复后观察 deny 比例回到基线（&lt; 1%）。</p>
+<p><b class="k">根治</b>auth-svc 与 deviceapi 用独立连接池与只读副本；auth 查询只走 PK 索引；device 表关键列变更加 trigger 审计。</p>
+<p><b class="k">演练</b>staging 停 PG 30 秒，观察 auth deny 与 online 曲线，验证缓存兜底。</p>
+
+<h3 id="inc-03-证书误吊销"><code>INC-03</code> 证书误吊销</h3>
+<p><b class="k">触发</b>运维批量吊销一批过期证书时 SQL 条件写错，把在用证书也标 revoked。或 PKI 系统推送了错误的 CRL。</p>
+<p><b class="k">传播</b>吊销 5 s 内生效是设计目标，这里它变成了放大器：5 秒内被吊销设备全部被 kick 并拒连。</p>
+<p><b class="k">检测信号</b>deny 原因 <code>cert status revoked</code> 在 1 分钟内 &gt; 100 台。device_cert 表 revoked 行数突增。</p>
+<p><strong>止血</strong></p>
+<pre><code class="language-sql">-- 找到本次批量操作影响的证书（按 revoked 时间窗）
+SELECT count(*), min(sn), max(sn) FROM iot_shard.device_cert
+ WHERE status='revoked' AND revoked_reason='&lt;本次原因&gt;' ;
+-- 确认后回滚
+UPDATE iot_shard.device_cert SET status='active', revoked_reason=NULL
+ WHERE status='revoked' AND revoked_reason='&lt;本次原因&gt;' AND expires_at &gt; now();
+</code></pre>
+<p>设备在退避后重连即恢复，最长 15 分钟。</p>
+<p><b class="k">根治</b>吊销走双人审批接口，不允许直接 SQL；单次吊销数量上限（如 100），超过必须分批并在两批之间观察 deny 曲线；吊销先在 staging 跑 dry-run 输出影响 SN 清单。</p>
+
+<h3 id="inc-04-熔断误开"><code>INC-04</code> 熔断误开</h3>
+<p><b class="k">触发</b>EMQX 短时 GC 停顿或网络抖动导致 conn-gate dial 上游连续 5 次超时（IOT_GATE_BREAK_N=5，DialTimeout 2 s），熔断打开 30 秒。EMQX 其实活着。</p>
+<p><b class="k">传播</b>30 秒内所有新连接被 RST。30 秒后自动复位，如果 EMQX 仍慢，再次打开。反复开合形成周期性拒连。</p>
+<p><b class="k">检测信号</b>breaker_open 在 1 与 0 之间反复翻转；upstream_fail 上升但 EMQX 进程与端口正常。</p>
+<p><b class="k">止血</b>如果 EMQX 确实健康只是慢，临时把 IOT_GATE_BREAK_N 调大（20）、DialTimeout 调到 5 s，重启 conn-gate。conn-gate 重启会断开经它代理的所有连接，因此<strong>先确认设备退避正常再重启</strong>，并在低峰执行。多副本时逐个重启。</p>
+<p><b class="k">根治</b>熔断加半开状态（试探性放行 1% 连接再决定全开）；dial 失败区分「拒绝」与「超时」，超时不计入连续失败。</p>
+
+<h2 id="3-数据链路"><span class="no">03</span>数据链路</h2>
+<h3 id="inc-05-jetstream-不可用或磁盘满"><code>INC-05</code> JetStream 不可用或磁盘满</h3>
+<p><b class="k">触发</b>NATS 节点磁盘写满（72 小时保留 × 消息量超预估）、节点 OOM、或 Raft 失去多数。</p>
+<p><b class="k">传播</b>bridge publish 失败 → telemetry 丢弃计数（设计如此）→ event / cmd_ack / ota_progress 进磁盘缓冲 <code>./data/bridge-buffer.jsonl</code> → 缓冲文件持续增长 → bridge 所在磁盘也满 → bridge 崩溃 → <strong>安全事件丢失</strong>。</p>
+<p><strong>检测信号</strong></p>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>阈值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bridge publish_err</td>
+<td>每秒 &gt; 0 持续 30 秒</td>
+</tr>
+<tr>
+<td>bridge buffer_len</td>
+<td>&gt; 10 万行</td>
+</tr>
+<tr>
+<td>bridge dropped_telemetry</td>
+<td>上升即意味着影子停更</td>
+</tr>
+<tr>
+<td>NATS <code>nats server report jetstream</code></td>
+<td>存储使用 &gt; 85%</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>止血</strong></p>
+<ol>
+<li>磁盘满：先扩容或删最老的 stream 数据（<code>nats stream purge IOT_UP --seq &lt;保留最近 24h 的起始 seq&gt;</code>）。72 小时保留是容灾窗口，缩到 24 小时是可接受的临时降级，登记。</li>
+<li>bridge 磁盘缓冲快满：给 bridge 挂更大的卷；不要删缓冲文件，里面是安全事件。</li>
+<li>alarm-svc 此时收不到事件。<strong>通知运营：告警链路降级中</strong>，设备端侧闭环仍在工作，但 App 推送会延迟。</li>
+</ol>
+<p><b class="k">恢复</b>JetStream 恢复后 bridge 自动重放缓冲（replayed 计数上升）。重放的事件带原始 ts，alarm-svc 会建告警并推送，用户会收到「迟到的告警」。运营需提前准备文案。</p>
+<p><b class="k">根治</b>JetStream 存储告警在 70%；按 cell 拆 stream 分散容量；bridge 缓冲上限与告警；bridge 缓冲用独立卷。</p>
+<p><b class="k">演练</b><code>docker stop nats</code> 60 秒，模拟器持续跑，观察 buffer_len 增长与恢复后的 replayed。</p>
+
+<h3 id="inc-06-tdengine-写失败"><code>INC-06</code> TDengine 写失败</h3>
+<p><b class="k">触发</b>TDengine 节点故障、taosAdapter 超时、子表数超上限、磁盘满。</p>
+<p><b class="k">传播</b>pipeline 整批 Nak（NakDelay 2 s）→ 30 秒 AckWait 后重投 → 同一批反复失败 → NumPending 增长 → 但 <strong>影子照常写</strong>（影子写在 TDengine 之后但失败不 Nak），事件走 handleEvent 单独 Nak。安全告警不受影响（alarm-svc 独立消费组）。</p>
+<p><b class="k">检测信号</b>pipeline nak 计数每分钟增量 &gt; 10；NumPending 持续上升；rows_written 停止增长。</p>
+<p><strong>止血</strong></p>
+<ol>
+<li>这是 S3。先确认 alarm consumer pending 正常，安全链路无恙。</li>
+<li>看 TDengine 错误：如果是单 SQL 过大或子表建表失败，是 poison 类问题，先把该 cell 的 BatchSize 调小。</li>
+<li>如果 TDengine 短期无法恢复，pipeline 继续 Nak 即可，JetStream 72 小时保留兜底。不要为了消 lag 把消息 Ack 丢掉。</li>
+</ol>
+<p><b class="k">恢复</b>TDengine 恢复后 pipeline 自动追赶。追赶期间 lag 看板会告警，属预期。</p>
+<p><b class="k">根治</b>TDengine 多副本；pipeline 对 TDengine 的写超时（FlushTimeout 20 s）小于 AckWait 30 s 已保证不会重复处理同一批；子表数监控。</p>
+
+<h3 id="inc-07-redis-故障"><code>INC-07</code> Redis 故障</h3>
+<p><b class="k">触发</b>Redis 主从切换、内存满被驱逐、网络分区。</p>
+<p><b class="k">传播</b>四个依赖各自的降级行为不同，这是关键：</p>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>用途</th>
+<th>Redis 故障时</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>dedupe</td>
+<td>出错放行 + 计数</td>
+<td>TDengine 可能出重复行（同 ts 覆盖，实际影响小）</td>
+</tr>
+<tr>
+<td>shadow reported</td>
+<td>写失败计数，不 Nak</td>
+<td>App 影子停更，用户看到「离线」</td>
+</tr>
+<tr>
+<td>device 维表富化</td>
+<td>缺失计数，用信封里的 pk</td>
+<td>fw_version / region 标签为空</td>
+</tr>
+<tr>
+<td>cmdres</td>
+<td>Set 失败 Nak</td>
+<td>指令结果延迟</td>
+</tr>
+<tr>
+<td>alarm squelch</td>
+<td>出错放行</td>
+<td>可能重复告警（宁重复不漏报）</td>
+</tr>
+<tr>
+<td>CF001 sn:seq</td>
+<td>INCR 失败</td>
+<td><strong>产线停线</strong>，见 INC-22</td>
+</tr>
+<tr>
+<td>conn-gate 集中令牌桶（生产）</td>
+<td>必须 fail-open 到本地桶</td>
+<td>否则全部拒连</td>
+</tr>
+</tbody>
+</table></div>
+<p><b class="k">检测信号</b>dedupe_redis_err、shadow_err、enrich_err 同时上升。</p>
+<p><b class="k">止血</b>Redis 切换通常 30 秒内完成。期间不动服务。切换后确认 <code>redis-cli info replication</code>。如果是内存满：先看 <code>redis-cli --bigkeys</code>，dedupe 键 TTL 600 s 应自动清理，若 device:{sn} 维表过多则是容量规划问题。</p>
+<p><b class="k">恢复</b>影子在下一条 telemetry 到达后自动更新（作业态 5 s，空闲 60 s）。</p>
+<p><b class="k">根治</b>dedupe 与 shadow 分实例；conn-gate 集中桶 fail-open 到本地桶必须有测试；CF001 sn:seq 用 PG 序列兜底。</p>
+
+<h3 id="inc-08-毒消息激增"><code>INC-08</code> 毒消息激增</h3>
+<p><b class="k">触发</b>新固件上报了不兼容的字段类型（如 progress 从 int 变成 string），或 schema_version 升级但 thing_model 未同步发布。</p>
+<p><b class="k">传播</b>ParseAndValidate 失败 → Ack 丢弃 + poison 计数 → <strong>该固件版本的所有遥测静默丢失</strong> → 影子停更 → 用户看到设备离线但机器正常。</p>
+<p><b class="k">检测信号</b>poison / consumed &gt; 1%；按 fw_version 切片的 rows_written 中某版本归零。</p>
+<p><b class="k">止血</b>poison 消息已被 Ack，无法从 JetStream 追回（除非 72 小时内重放）。先定位是哪个固件版本，暂停该版本的 OTA 批次（<code>POST /ota/batches/{id}/pause</code>），防止扩散。</p>
+<p><b class="k">恢复</b>发布兼容的 thing_model 版本；或 hotfix pipeline 解析器放宽类型；从 JetStream 重放该时间段（新 durable consumer，by_start_time），dedupe 会放行因为原消息未写 dedupe 键。</p>
+<p><b class="k">根治</b>poison 消息落死信 subject <code>iot.dlq.&gt;</code> 而不是直接丢；OTA 前置校验：新固件在模拟器上跑一轮 smoke 验证解析；未知字段透传落明细的原则要覆盖到类型宽松。</p>
+
+<h3 id="inc-09-消费-lag-超-30-s"><code>INC-09</code> 消费 lag 超 30 s</h3>
+<p><b class="k">触发</b>设备增长后消息量超过单 flusher 吞吐；或某 cell 的设备分布不均。</p>
+<p><b class="k">传播</b>NumPending 增长 → 影子新鲜度 SLO 破 → 指令回执（cmd_ack 也经 pipeline）延迟 → 用户看到「未知结果」。</p>
+<p><b class="k">检测信号</b>NumPending 持续增长；批大小分布中 500 条触发占比 &gt; 80%（说明消费端吃满）；MaxAckPending 5000 触顶。</p>
+<p><b class="k">止血</b><code>IOT_FLUSHERS=4</code> 重启 pipeline（pull consumer 重启不丢消息）。多副本部署时增加副本，同一 durable 的多个 pull 实例自动分摊。</p>
+<p><b class="k">根治</b>flusher 数按 cell 消息量自动调；心跳间隔 OTA 调参是容量应急阀门（60 s → 120 s 空闲流量减半）；cell 数从 2 扩到 N 需要 rehash，见 §15 单元化。</p>
+
+<h2 id="4-安全告警链路"><span class="no">04</span>安全告警链路</h2>
+<h3 id="inc-10-火焰事件漏告警-s1"><code>INC-10</code> 火焰事件漏告警（S1）</h3>
+<p>这是全系统最不能发生的事故。端侧已停机，但用户不知道，回家发现机器停了却没收到任何通知，信任崩塌。</p>
+<p><strong>触发路径推演</strong></p>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>环节</th>
+<th>故障</th>
+<th>概率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>设备 → EMQX</td>
+<td>设备断网</td>
+<td>高，但端侧已停机，属设计内</td>
+</tr>
+<tr>
+<td>EMQX → bridge</td>
+<td>bridge 全部副本挂</td>
+<td>低</td>
+</tr>
+<tr>
+<td>bridge → JetStream</td>
+<td>JetStream 挂</td>
+<td>中，见 INC-05，有磁盘缓冲</td>
+</tr>
+<tr>
+<td>JetStream → alarm-svc</td>
+<td>alarm consumer 挂、或 pending 堆积</td>
+<td>中</td>
+</tr>
+<tr>
+<td>alarm-svc 处理</td>
+<td>squelch 误吞、PG 写失败、状态机 bug</td>
+<td>中</td>
+</tr>
+<tr>
+<td>推送</td>
+<td>APNs / FCM 供应商故障、token 失效</td>
+<td>中</td>
+</tr>
+<tr>
+<td>App</td>
+<td>用户关了通知权限</td>
+<td>高，产品层解决</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>检测信号</strong>（必须多路冗余，任一触发即 S1）</p>
+<ol>
+<li>alarm consumer NumPending &gt; 10 持续 1 分钟。</li>
+<li>对账任务：每 5 分钟比对 TDengine <code>events WHERE code IN (SafetyCodes)</code> 与 PG <code>alarm</code> 按 (sn, event_ts) 匹配，缺失 &gt; 0 即告警。</li>
+<li>合成探针：staging 与生产各常驻 1 台探针模拟器，每 10 分钟发一条 FLAME_DETECTED，测端到端推送到达时间，&gt; 3 s 告警，未到达 S1。</li>
+<li>推送供应商回执失败率 &gt; 5%。</li>
+</ol>
+<p><strong>止血（5 分钟内）</strong></p>
+<ol>
+<li>看 alarm-svc 是否存活、consumer 是否有 pending。挂了先拉起，pending 会自动追。</li>
+<li>推送供应商挂：切备用通道（短信直接升级，跳过 10 分钟等待）。原型中升级是日志模拟，生产必须有独立于推送的第二通道。</li>
+<li>squelch 误吞：<code>redis-cli keys 'alarm:squelch:*' | wc -l</code> 看数量是否异常；如果是 squelch 逻辑 bug，<code>redis-cli --scan --pattern 'alarm:squelch:*' | xargs redis-cli del</code> 清空，代价是可能重复告警。</li>
+<li><strong>通知运营与客服</strong>：告警链路降级，准备主动外呼受影响用户（从 events 表拉最近 1 小时安全事件 SN 列表 → device_binding → PII 平台取联系方式）。</li>
+</ol>
+<p><b class="k">恢复</b>对账任务补齐缺失告警并推送。迟到告警文案说明「设备已于 HH:MM 自动停机」。</p>
+<p><strong>根治</strong></p>
+<ul>
+<li>合成探针与对账任务是 P0 必须上线的，不是可选。</li>
+<li>alarm-svc 至少 2 副本跨可用区。</li>
+<li>推送双通道；critical 告警首次推送与短信并行而不是串行等 10 分钟（产品决策，需业务方确认费用）。</li>
+</ul>
+<p><b class="k">演练</b>每月一次，随机 kill alarm-svc 一个副本 + 模拟器发 FLAME_DETECTED，验证探针告警与对账补齐。</p>
+
+<h3 id="inc-11-误报风暴"><code>INC-11</code> 误报风暴</h3>
+<p><b class="k">触发</b>一批温度传感器出厂偏差，同一机型上万台在环境温度 30 ℃ 时触发 OVER_TEMP。端侧停机 → 用户任务中断 → 事件上云 → 告警推送 → 10 分钟未确认 → 短信升级。</p>
+<p><b class="k">传播</b>用户投诉；短信费用暴涨；客服被打爆；用户关闭联网。</p>
+<p><b class="k">检测信号</b>alarm 表每分钟新增 &gt; 100；同 code 同 product_key 占比 &gt; 80%；同 fw_version 集中。</p>
+<p><strong>止血</strong></p>
+<ol>
+<li>确认是误报而不是真实批次危险：抽 10 台看 temp_cavity 曲线，若温度平稳在阈值附近即误报。<strong>不能确认前按真实处理</strong>。</li>
+<li>暂停该 code 该机型的短信升级（登记）：原型无此开关，生产 alarm-svc 需支持按 (product_key, code) 的升级策略配置。推送保留，因为设备确实停了，用户需要知道。</li>
+<li>推送文案改为「检测到温度偏高，已自动暂停，可能是传感器校准问题，请查看机器后继续」。</li>
+</ol>
+<p><b class="k">恢复</b>OTA 下发阈值调参（端侧规则阈值可 OTA 调整，DR-04 / FR-08 设计）。走正常灰度，不跳档。</p>
+<p><b class="k">根治</b>端侧阈值带出厂校准偏移；告警按 (product_key, code) 有速率上限，超过自动转「批次事件」通知产品与固件团队而非逐台短信；FR-28 错误码集中爆发告警提前到 P0。</p>
+
+<h3 id="inc-12-升级短信异常"><code>INC-12</code> 升级短信异常</h3>
+<p><b class="k">触发 A 重复发送</b>alarm-svc 多副本各自跑升级循环（EscalationInterval 30 s），条件 UPDATE 未做幂等 → 同一告警多条短信。
+<strong>触发 B 不发送</strong>：升级循环因 PG 慢查询卡住；或 acked 状态误判。</p>
+<p><b class="k">检测信号</b>短信发送数 vs <code>alarm WHERE escalated_at IS NOT NULL</code> 行数不等；notified 且 <code>now() - notified_at &gt; 11 min</code> 且 escalated_at 为空的行数 &gt; 0。</p>
+<p><b class="k">止血</b>A：升级只由一个副本执行（leader 选举或 PG advisory lock），临时缩到 1 副本。B：<code>SELECT id FROM alarm WHERE status='notified' AND notified_at &lt; now()-interval '10 min' AND escalated_at IS NULL</code>，人工触发升级。</p>
+<p><b class="k">根治</b>升级用 <code>UPDATE ... SET escalated_at=now() WHERE id=$1 AND escalated_at IS NULL RETURNING id</code>，affected=1 才发短信，天然幂等。原型 EscalateOnce 已按此设计，生产复核多副本下的行为。</p>
+
+<h2 id="5-指令链路"><span class="no">05</span>指令链路</h2>
+<h3 id="inc-13-误停机"><code>INC-13</code> 误停机</h3>
+<p><b class="k">触发</b>客服在工单系统输错 SN 对无关设备下 stop；或 P1 的 Agent 逻辑 bug 批量下发。</p>
+<p><b class="k">传播</b>用户正在作业的机器停了，材料报废，投诉。</p>
+<p><b class="k">检测信号</b>cmd_audit 中 source=support 或 agent 的每分钟数 &gt; 10；同一 operator 对多个 SN 短时间下发。</p>
+<p><strong>止血</strong></p>
+<ol>
+<li>停止来源：吊销该客服账号的指令权限或下线 Agent。</li>
+<li>从 cmd_audit 拉出受影响 SN 与时间，通知客服主动联系用户。</li>
+</ol>
+<pre><code class="language-sql">SELECT cmd_id, sn, action, operator, created_at FROM iot_shard.cmd_audit
+ WHERE source IN ('support','agent') AND created_at &gt; now()-interval '30 min' ORDER BY created_at;
+</code></pre>
+<p><b class="k">根治</b>客服指令需用户 App 确认授权（FR-20，P1 提前到 P0 评估）；Agent 每分钟指令数上限；stop 对作业态设备需二次确认。</p>
+
+<h3 id="inc-14-指令回执丢失"><code>INC-14</code> 指令回执丢失</h3>
+<p><b class="k">触发</b>设备执行了 pause 并回 cmd_ack，但 pipeline lag（INC-09）或 Redis 故障（INC-07）导致 cmdres:{cmd_id} 未写或 1 小时 TTL 过期。</p>
+<p><b class="k">传播</b>用户看到「未知结果，建议现场确认」，但机器实际已暂停。用户以为没生效再按一次，第二次 pause 对已暂停设备返回 fail。</p>
+<p><b class="k">检测信号</b><code>cmd_audit WHERE acked_at IS NULL AND created_at &lt; now()-interval '1 min'</code> 占比 &gt; 10%。</p>
+<p><b class="k">止血</b>修复上游（INC-07 / INC-09）。用户侧：App 提示中加「查看设备影子 work_state」，影子 3 暂停即可确认。</p>
+<p><b class="k">根治</b>cmd_ack 写 cmdres 与 cmd_audit.acked_at 同时进行，PG 是权威、Redis 是缓存；GET /cmds 先查 Redis 再回退 PG。</p>
+
+<h3 id="inc-15-deviceapi-被刷"><code>INC-15</code> deviceapi 被刷</h3>
+<p><b class="k">触发</b>App 版本 bug 导致影子轮询无退避（每 100 ms 一次）；或恶意扫描 SN。</p>
+<p><b class="k">传播</b>deviceapi 进程内限流 429（按 IP，ipLimit）→ 多副本下上限放大 N 倍 → PG 连接池被 telemetry 查询占满 → auth-svc 若共用 PG 则进入 INC-02。</p>
+<p><b class="k">检测信号</b>deviceapi 429 比例 &gt; 5%；PG active connections 接近上限；单 IP 请求数 top 10。</p>
+<p><b class="k">止血</b>网关层按 user token 限流（deviceapi 的 IP 限流只是最后一道）；紧急时对 <code>GET /telemetry</code> 单独降级返回 503，保留 shadow / cmd。</p>
+<p><b class="k">根治</b>限流维度用 user_id + path（认证之后），不用 IP（NAT 误伤，见事故复盘）；auth 与 deviceapi 分 PG 连接池甚至分实例；App 轮询改为影子推送。</p>
+
+<h2 id="6-ota-链路"><span class="no">06</span>OTA 链路</h2>
+<h3 id="inc-16-刷坏一批固件且熔断未触发-s1"><code>INC-16</code> 刷坏一批固件且熔断未触发（S1）</h3>
+<p><strong>触发路径推演</strong></p>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>情形</th>
+<th>为什么熔断没触发</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>0.1% 档只有 30 台，样本 &lt; MinFuseSamples 50，永不熔断；坏固件在 30 台上全部失败但批次 status 仍 running，运营 advance 到 1%</td>
+</tr>
+<tr>
+<td>B</td>
+<td>设备刷完重启后砖了，<strong>根本没机会上报 failed</strong>；云端看到的是 downloading 后无终态，ok / fail 都不增长</td>
+</tr>
+<tr>
+<td>C</td>
+<td>批次在 0.1% 档 fused 后运营 resume 并直接 advance；resume 是 fused 的唯一出口，但 resume 后 fail_count 不清零，Advance 会因比例超阈值拒绝，若运营改用 CreateBatch 直接建下一档则绕过了这道检查</td>
+</tr>
+<tr>
+<td>D</td>
+<td>fail_ratio_fuse 被建批次时设成 0.5</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>检测信号</strong>（任一）</p>
+<ul>
+<li>批次任务中 <code>status IN ('downloading','verifying')</code> 超过 30 分钟未变的比例 &gt; 5%（情形 B 的唯一信号）。</li>
+<li>rolled_back 计数 &gt; 0 立即告警（不等比例）。</li>
+<li>批次内设备 last_online_at 在 OTA 下发后 30 分钟内未更新的比例 &gt; 5%。</li>
+<li>Advance 时当前档 target_total &lt; 50 且有任何 failed，人工复核。</li>
+</ul>
+<p><strong>止血（5 分钟内）</strong></p>
+<pre><code class="language-bash">curl -XPOST :8086/api/v1/ota/batches/&lt;id&gt;/pause     # 立即停止下发，DispatchOnce 每 chunk 复查状态
+curl :8086/api/v1/ota/batches/&lt;id&gt;                    # 看 target_total / ok / fail / 任务直方图
+</code></pre>
+<p>然后拉出该批次全部 SN 与当前 phase，交客服准备联系。</p>
+<p><strong>恢复</strong></p>
+<ul>
+<li>有 A/B 回滚的设备自动回到旧版本，可正常作业。确认后该固件 status 置 withdrawn。</li>
+<li>无法启动的设备（情形 B）：召回或上门刷机。这是 DR-03 红线存在的原因。</li>
+</ul>
+<p><strong>根治</strong></p>
+<ul>
+<li>MinFuseSamples 之外增加<strong>绝对数熔断</strong>：任何档位 failed + rolled_back ≥ 5 台即 fused。</li>
+<li>「下发后 30 分钟未上报终态」计为 fail（stale 判定），这是情形 B 的解药。</li>
+<li>rolled_back 已计入 fail_count（原型 consumer 对所有非 success 终态 failInc=1），保持并加单测锁定。</li>
+<li>fail_ratio_fuse 建批次上限 0.05，超过需 approved_by。</li>
+<li>0.1% 档强制先在内部机（office dogfood 清单）跑完再到外部用户。</li>
+</ul>
+<p><b class="k">演练</b><code>device-simulator -n 200 -ota-fail-rate 0.3</code> + 建 1% 批次，验证 fused；再加模拟器「下载后静默」模式验证 stale 判定（需新增 flag）。</p>
+
+<h3 id="inc-17-灰度范围失控"><code>INC-17</code> 灰度范围失控</h3>
+<p><b class="k">触发</b>运营误建 stage=50 而不是 0.1（API 接受任何合法档位，不强制顺序）；或 InStage 抽样代码被改成按 target_total 随机。</p>
+<p><b class="k">检测信号</b>新批次 target_total 与 stage × 该 product_key 设备总数不符；同一固件存在跳档的批次序列（0.1 → 50）。</p>
+<p><b class="k">止血</b>pause。已下发的设备无法撤回，只能靠 idle_only 延迟与 A/B 兜底。</p>
+<p><b class="k">根治</b>CreateBatch 强制档位顺序：同一 firmware_id 的批次 stage 必须是上一个批次的 NextStage，第一批只能是 0.1（Advance 已这样做，CreateBatch 直接建应受同样约束）；PG trigger 校验。</p>
+
+<h3 id="inc-18-cdn-故障导致误熔断"><code>INC-18</code> CDN 故障导致误熔断</h3>
+<p><b class="k">触发</b>CDN 区域节点故障，设备下载失败上报 failed，error_code=DOWNLOAD_TIMEOUT，50 台样本后 fail_ratio &gt; 2% → fused。</p>
+<p><b class="k">传播</b>熔断是正确的保护，但原因是 CDN 不是固件。fused 无自动恢复，OTA 全量周期 SLO 受影响。</p>
+<p><b class="k">检测信号</b>fused 批次的 failed 任务 error_code 分布 100% 为下载类。</p>
+<p><b class="k">止血</b>确认 CDN 状态；修复后 <code>POST /ota/batches/&lt;id&gt;/resume</code>（这是 fused 的唯一出口，人工）；失败任务重置为 pending 重新下发（retry 计数 +1）。</p>
+<p><b class="k">根治</b>下载类错误单独计数，不计入固件熔断比例但触发 CDN 告警；设备侧下载失败先重试 3 次（退避）再上报 failed。</p>
+
+<h3 id="inc-19-作业中升级"><code>INC-19</code> 作业中升级</h3>
+<p><b class="k">触发</b>设备固件的 idle_only 判断有 bug（如预热态 work_state=1 被当成空闲）；或 ota 指令 policy 字段被固件忽略。</p>
+<p><b class="k">传播</b>作业中重启 → 任务失败 → 材料报废 → JOB_FAIL 事件 → 用户投诉。这是 FR-21「作业中绝不升级」的直接违反。</p>
+<p><b class="k">检测信号</b>同 SN 在 OTA downloading → success 时间窗内出现 JOB_FAIL 或 work_state 从 2 直接跳到 5。</p>
+<p><b class="k">止血</b>pause 该批次。</p>
+<p><b class="k">根治</b>云端下发前也检查影子 work_state，仅对 0 空闲的设备下发（ota-svc pendingTasks 增加影子过滤）；固件 idle_only 单测覆盖全部 work_state。</p>
+
+<h2 id="7-隐私合规"><span class="no">07</span>隐私合规</h2>
+<h3 id="inc-20-未-opt-in-画面落云存储-s1"><code>INC-20</code> 未 opt-in 画面落云存储（S1）</h3>
+<p><b class="k">触发</b>快照 RRPC 实现时为了调试把预签名 URL 的对象保留了；或 desired camera_cloud_optin 下发失败但云端按 App 显示状态放开了接收。</p>
+<p><b class="k">检测信号</b>对象存储写入审计：每个写入对象的 SN 关联 device 的 camera_cloud_optin（影子 reported，不是 desired）为 false 即告警。每日对账。</p>
+<p><b class="k">止血</b>立即停止接收（关闭上传端点）；列出违规对象清单并删除；保留删除日志供法务。</p>
+<p><b class="k">根治</b>判定依据必须是设备<strong>回报</strong>的 reported.camera_cloud_optin，不是 App 侧开关；对象存储桶策略默认 24 小时生命周期兜底；快照走内存中转不写对象存储（FR-15 设计）。</p>
+
+<h3 id="inc-21-删除传导失败"><code>INC-21</code> 删除传导失败</h3>
+<p><b class="k">触发</b>PII 平台删除事件发出，设备云消费失败（网络、schema 变更）且无重试；30 天后审计发现该用户 SN 仍可关联。</p>
+<p><b class="k">检测信号</b>传导任务失败计数；每日对账：PII 平台已删除的 user_id 在 device_binding 中 unbound_at IS NULL 的行数。</p>
+<p><b class="k">止血</b>手动执行传导：绑定 unbound、对象存储按 SN 删除、导出请求取消。</p>
+<p><b class="k">根治</b>传导任务幂等 + 死信 + 每日对账；72 小时 SLA 提前在 48 小时告警。</p>
+
+<h2 id="8-产线与激活"><span class="no">08</span>产线与激活</h2>
+<h3 id="inc-22-产线停线-s1"><code>INC-22</code> 产线停线（S1）</h3>
+<p><b class="k">触发</b>cf001-svc 不可用；其依赖 PG（cf001 schema）或 Redis（sn:seq）不可用；或密钥文件丢失导致服务用内存临时密钥启动，签名与已出厂设备不一致。</p>
+<p><b class="k">传播</b>产线每台 &lt; 2 s 节拍，/sign 失败即停线。停线每分钟都是钱。历史事故正是产线停线 30 分钟。</p>
+<p><b class="k">检测信号</b>/sign 5xx 或超时 &gt; 3 次即产线告警（产线工位本地告警，不依赖云端监控）。</p>
+<p><strong>止血（10 分钟内）</strong></p>
+<ol>
+<li>服务挂：拉起。cf001-svc 无状态，多副本。</li>
+<li>Redis 挂：sn:seq INCR 失败。<strong>产线预留离线 SN 段</strong>：每天开工前从云端预取 1000 个 SN 流水号段到工位本地，Redis 故障时用本地段继续签发，恢复后同步。这是产线侧必须实现的。</li>
+<li>密钥丢失：服务启动日志有 WARN「generated in-memory key」即立即停止对外服务，从 KMS 恢复密钥。用错误密钥签发的 SN 全部作废重签。</li>
+<li>PG 挂：配额事务无法执行。允许产线<strong>记账后补</strong>：工位本地记录 digest 与分配的 SN，恢复后批量补 /sign（幂等，同 digest 返回既有 SN 不耗配额，但补录要走配额扣减）。</li>
+</ol>
+<p><b class="k">根治</b>cf001 依赖与设备云主链路完全隔离（独立 PG、独立 Redis）；密钥从 KMS 加载失败时拒绝启动而非生成临时密钥（原型行为是开发便利，生产必须改）；产线离线 SN 段与记账后补流程写进产线 SOP。</p>
+
+<h3 id="inc-23-配额异常"><code>INC-23</code> 配额异常</h3>
+<p><b class="k">触发 A 超发</b>并发 bug 绕过单条 UPDATE 行锁。实际上 ck_quota_not_exceeded CHECK 是第二道护栏，超发会被库拒绝，因此更可能表现为大量 11010 而非真超发。
+<strong>触发 B 被吃光</strong>：供应商或泄漏的载荷被批量重放，/sign 按 IP 10 次/分钟，来自多 IP 即可绕过。</p>
+<p><b class="k">检测信号</b>registered 增速远超产线节拍（如每分钟 &gt; 60）；同一 order_no 的 /sign 来源 IP 数 &gt; 5。</p>
+<p><b class="k">止血</b>B：把该 order_no 的 status 置 2（已完成）暂停签发；分析 digest_maps 中该时段的 mcu_sn / mac 是否在供应商提供的合法清单内，不在的作废。</p>
+<p><b class="k">根治</b>/sign 校验 timestamp 新鲜度（5 分钟）与 nonce 去重（原型未实现，生产必须）；供应商预先上传硬件清单，digest 对应的 mcu_sn 必须在清单内。</p>
+
+<h2 id="9-运维"><span class="no">09</span>运维</h2>
+<h3 id="inc-24-月初-cmd_audit-分区缺失"><code>INC-24</code> 月初 cmd_audit 分区缺失</h3>
+<p><b class="k">触发</b>cmd_audit 按月 RANGE 分区，DDL 脚本只预建当月与下月。滚动建分区的定时任务未部署或失败，两个月后的 1 日 00:00 起所有 INSERT 报 no partition of relation。</p>
+<p><b class="k">传播</b>审计消费者 InsertAudit 失败 → NakWithDelay 2 s 反复重投 → IOT_CMD 流 pending 持续增长 → 审计落库停止但指令本身不受影响（deviceapi 先发 down/{sn}/cmd 再发审计，返回 OK 不依赖审计）。IOT_CMD 保留 30 天，分区补上后审计全部追回。</p>
+<p><b class="k">另一条相关风险</b>deviceapi 向 JetStream 发布审计消息是尽力而为，发布失败只记 ERROR 日志，指令照常返回 OK。JetStream 不可用期间（INC-05）的指令<strong>审计会静默丢失</strong>，与 FR-19「审计 100% 落库」冲突。生产必须改为：审计发布失败则指令接口返回 5xx 且不下发，或先落 PG 再下发。</p>
+<p><b class="k">检测信号</b>PG 日志 <code>no partition of relation "cmd_audit" found for row</code>；<code>nats consumer info IOT_CMD cmd-audit</code> pending 持续增长；deviceapi 日志 publish audit ERROR。<strong>预防性检查</strong>：每天检查未来 60 天分区是否存在。</p>
+<p><strong>止血</strong></p>
+<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS iot_shard.cmd_audit_YYYYMM PARTITION OF iot_shard.cmd_audit
+  FOR VALUES FROM ('YYYY-MM-01') TO ('YYYY-MM+1-01');
+</code></pre>
+<p>审计消费者是 JetStream IOT_CMD 的消费者（30 天保留），分区建好后自动追上，审计不丢。</p>
+<p><b class="k">根治</b>pg_partman 或定时任务提前建 3 个月；每日探针 INSERT 一条 60 天后的测试行再删除；DEFAULT 分区兜底（写入后再迁移）。</p>
+
+<h3 id="inc-25-单元整体故障"><code>INC-25</code> 单元整体故障</h3>
+<p>完整六步与通过条件见 docs/drill-runbook.md。这里只列决策点：</p>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>决策</th>
+<th>判断依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>是否 drain</td>
+<td>该 cell 的 EMQX 或 conn-gate 10 分钟内无法恢复</td>
+</tr>
+<tr>
+<td>是否 bump cell_map_ver</td>
+<td>drain 后 5 分钟设备仍回原 cell（固件缓存了接入点）</td>
+</tr>
+<tr>
+<td>是否重放重建影子</td>
+<td>故障期间 &gt; 1 小时，或 Redis 同时受损</td>
+</tr>
+<tr>
+<td>何时回切</td>
+<td>原 cell 健康 24 小时后，低峰期，先置 standby 再 active</td>
+</tr>
+</tbody>
+</table></div>
+
+<h3 id="inc-26-emqx-连接数触顶"><code>INC-26</code> EMQX 连接数触顶</h3>
+<p><b class="k">触发</b>商业 license 连接数上限；容器 nofile 1024（压测已踩过）；单节点连接数超规划。</p>
+<p><b class="k">传播</b>EMQX 拒绝新连接 → conn-gate dial 成功但 MQTT CONNECT 被拒 → 设备退避 → 但 conn-gate 的 accepted 计数正常，<strong>熔断不会打开</strong>（dial 成功了）→ 看板上一切正常，只有 online 不涨。</p>
+<p><b class="k">检测信号</b>EMQX 自身 connections 指标接近 license 上限；auth-svc 请求数与 conn-gate accepted 不匹配（EMQX 在 auth 前就拒了）。</p>
+<p><b class="k">止血</b>临时提高 license（供应商紧急通道）或扩节点；调 conn-gate 令牌桶到 EMQX 剩余容量让设备退避而不是反复撞。</p>
+<p><b class="k">根治</b>license 用量 80% 告警；compose / k8s 的 ulimit 明确配置并在启动时自检 <code>ulimit -n</code>。</p>
+
+<h3 id="inc-27-时钟漂移"><code>INC-27</code> 时钟漂移</h3>
+<p><b class="k">触发</b>设备 RTC 无电池或未同步 NTP，上报 ts 偏差数小时甚至年份错误。</p>
+<p><b class="k">传播</b>TDengine 按 ts 写入，错误 ts 的行落到「过去」或「未来」；telemetry_1h 流窗口错乱；安全事件的 event_ts 错误导致触达 P99 统计失真；SN 日期用服务端 UTC 不受影响。</p>
+<p><b class="k">检测信号</b><code>abs(recv_ts - payload.ts)</code> 分布：&gt; 5 分钟的比例 &gt; 1%。</p>
+<p><b class="k">止血</b>无需紧急动作。统计口径改用 recv_ts 纠偏（方案 §2.2 已定义）。</p>
+<p><b class="k">根治</b>设备连接后云端下发时间（desired 或 CONNECT 响应）；ts 偏差 &gt; 1 小时的消息用 recv_ts 替代并打标签。</p>
+
+<h2 id="10-临时关闭保护登记表"><span class="no">10</span>临时关闭保护登记表</h2>
+<p>任何一道护栏被临时关闭或放宽，<strong>在关闭的同一分钟</strong>在此登记并设到点提醒。到点未恢复自动升级为 S2 事故。</p>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>时间</th>
+<th>事故 ID</th>
+<th>关闭 / 放宽的保护</th>
+<th>原值 → 临时值</th>
+<th>操作人</th>
+<th>计划恢复时间</th>
+<th>实际恢复时间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p>模板：conn-gate 令牌桶 IOT_GATE_RPS · auth 缓存兜底 fail-open · JetStream 保留 72h → 24h · alarm squelch 清空 · 升级短信按 code 暂停 · OTA fail_ratio_fuse · cf001 IP 限流。</p>
+
+<h2 id="11-演练计划"><span class="no">11</span>演练计划</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>季度</th>
+<th>演练</th>
+<th>剧本</th>
+<th>对应事故</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q+0（P0 出口前）</td>
+<td>三剧本压测</td>
+<td>loadgen conn / storm / flood</td>
+<td>INC-01 INC-09</td>
+</tr>
+<tr>
+<td>Q+0</td>
+<td>单元 kill</td>
+<td>drill-runbook 六步</td>
+<td><a href="#inc-25-单元整体故障"><code>INC-25</code></a></td>
+</tr>
+<tr>
+<td>Q+0</td>
+<td>刷坏固件</td>
+<td>simulator -ota-fail-rate 0.3 + 1% 批次</td>
+<td><a href="#inc-16-刷坏一批固件且熔断未触发-s1"><code>INC-16</code></a></td>
+</tr>
+<tr>
+<td>Q+0</td>
+<td>火焰漏告警</td>
+<td>kill alarm-svc + FLAME_DETECTED，验证探针与对账</td>
+<td><a href="#inc-10-火焰事件漏告警-s1"><code>INC-10</code></a></td>
+</tr>
+<tr>
+<td>Q+1</td>
+<td>依赖逐个 kill</td>
+<td>依次停 nats / tdengine / redis / postgres 各 60 s</td>
+<td>INC-05 06 07 02</td>
+</tr>
+<tr>
+<td>Q+1</td>
+<td>产线断云</td>
+<td>停 cf001 依赖，验证离线 SN 段与记账后补</td>
+<td><a href="#inc-22-产线停线-s1"><code>INC-22</code></a></td>
+</tr>
+<tr>
+<td>Q+1</td>
+<td>误报风暴</td>
+<td>500 台模拟器同时 OVER_TEMP</td>
+<td><a href="#inc-11-误报风暴"><code>INC-11</code></a></td>
+</tr>
+<tr>
+<td>Q+2</td>
+<td>月初分区</td>
+<td>修改系统时间到下下月 1 日</td>
+<td><a href="#inc-24-月初-cmd_audit-分区缺失"><code>INC-24</code></a></td>
+</tr>
+<tr>
+<td>Q+2</td>
+<td>证书批量误吊销</td>
+<td>staging 吊销 100 台后回滚</td>
+<td><a href="#inc-03-证书误吊销"><code>INC-03</code></a></td>
+</tr>
+<tr>
+<td>每月</td>
+<td>合成探针巡检</td>
+<td>检查探针告警与推送延迟趋势</td>
+<td><a href="#inc-10-火焰事件漏告警-s1"><code>INC-10</code></a></td>
+</tr>
+</tbody>
+</table></div>
+<p>每次演练产出：时间线、每个检测信号是否在预期时间内触发、止血动作耗时、与本文的差异。差异回写本文。</p>
+
+<h2 id="12-p0-出口前必须补齐的能力"><span class="no">12</span>P0 出口前必须补齐的能力</h2>
+<p>推演暴露出原型尚未具备、但生产上线前必须有的能力：</p>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>能力</th>
+<th>对应事故</th>
+<th>优先级</th>
+<th>状态（2026-09-18）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>安全事件合成探针 + 事件与告警对账任务</td>
+<td><a href="#inc-10-火焰事件漏告警-s1"><code>INC-10</code></a></td>
+<td>P0</td>
+<td>对账已实现：alarm-svc Reconciler，每 5 min 比对 TDengine events 与 PG alarm，缺失走 HandleEventNoSquelch 补录；合成探针待部署（模拟器 -event 常驻）</td>
+</tr>
+<tr>
+<td>OTA stale 判定（下发后 30 分钟无终态计 fail）+ 绝对数熔断</td>
+<td><a href="#inc-16-刷坏一批固件且熔断未触发-s1"><code>INC-16</code></a></td>
+<td>P0</td>
+<td>已实现：ota-svc SweepStale（IOT_OTA_STALE_AFTER 30m）与 ShouldFuseAbs（IOT_OTA_MIN_ABS_FAIL 5）</td>
+</tr>
+<tr>
+<td>CreateBatch 强制档位顺序</td>
+<td><a href="#inc-17-灰度范围失控"><code>INC-17</code></a></td>
+<td>P0</td>
+<td>已实现：ExpectedNextStage，越级 409，最新批次 FOR UPDATE</td>
+</tr>
+<tr>
+<td>poison 消息落死信而非丢弃</td>
+<td><a href="#inc-08-毒消息激增"><code>INC-08</code></a></td>
+<td>P0</td>
+<td>已实现：IOT_DLQ 流，<code>iot.dlq.&lt;kind&gt;</code>，发布失败 Nak</td>
+</tr>
+<tr>
+<td>auth-svc 本地缓存 fail-open 兜底（登记制）</td>
+<td><a href="#inc-02-认证全拒"><code>INC-02</code></a></td>
+<td>P0</td>
+<td>已实现：IOT_AUTH_FAILOPEN 默认关，仅覆盖 Store 出错，/metrics 暴露 failopen_allowed</td>
+</tr>
+<tr>
+<td>产线离线 SN 段与记账后补 SOP</td>
+<td><a href="#inc-22-产线停线-s1"><code>INC-22</code></a></td>
+<td>P0</td>
+<td>未做：产线侧流程，不在本仓库</td>
+</tr>
+<tr>
+<td>cf001 nonce 新鲜度与去重、密钥加载失败拒绝启动</td>
+<td>INC-22 INC-23</td>
+<td>P0</td>
+<td>已实现：CheckFreshness 5m 窗口、Redis SETNX 去重 fail-closed、IOT_CF001_REQUIRE_KEY</td>
+</tr>
+<tr>
+<td>cmd_audit 分区滚动任务与探针</td>
+<td><a href="#inc-24-月初-cmd_audit-分区缺失"><code>INC-24</code></a></td>
+<td>P0</td>
+<td>已实现：ensure_cmd_audit_partitions 函数 + deviceapi 启动与每日调用；探针未做</td>
+</tr>
+<tr>
+<td>审计发布失败时指令拒绝下发（审计先于指令）</td>
+<td>INC-24 INC-05</td>
+<td>P0</td>
+<td>已实现：503 / 100013，指令不下发</td>
+</tr>
+<tr>
+<td>推送双通道，critical 首推与短信策略由业务方定</td>
+<td><a href="#inc-10-火焰事件漏告警-s1"><code>INC-10</code></a></td>
+<td>P0 决策</td>
+<td>待业务决策</td>
+</tr>
+<tr>
+<td>按 (product_key, code) 的告警速率上限与升级开关</td>
+<td><a href="#inc-11-误报风暴"><code>INC-11</code></a></td>
+<td>P1</td>
+<td>未做</td>
+</tr>
+<tr>
+<td>下载类错误不计入固件熔断</td>
+<td><a href="#inc-18-cdn-故障导致误熔断"><code>INC-18</code></a></td>
+<td>P1</td>
+<td>未做</td>
+</tr>
+<tr>
+<td>云端下发 OTA 前检查影子 work_state</td>
+<td><a href="#inc-19-作业中升级"><code>INC-19</code></a></td>
+<td>P1</td>
+<td>未做</td>
+</tr>
+<tr>
+<td>conn-gate 半开熔断、超时不计连续失败</td>
+<td><a href="#inc-04-熔断误开"><code>INC-04</code></a></td>
+<td>P1</td>
+<td>未做</td>
+</tr>
+<tr>
+<td>对象存储写入按 reported opt-in 审计</td>
+<td><a href="#inc-20-未-opt-in-画面落云存储-s1"><code>INC-20</code></a></td>
+<td>P0</td>
+<td>未做：原型无对象存储</td>
+</tr>
+</tbody>
+</table></div>
+
+<footer>
+  <p>本文与 docs/tech-design-aiot-platform.md §15.3 依赖故障矩阵互为补充：那里回答「组件挂了系统怎么表现」，这里回答「人在前 15 分钟做什么」。每次真实事故后按 docs/incident-register-storm.md 的格式复盘，并把新教训回写到对应 INC 条目。</p>
+</footer>
+</div>
+
+</body>
+</html>

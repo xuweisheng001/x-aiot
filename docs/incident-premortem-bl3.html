@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --ink: #1c2733;
+  --muted: #56687a;
+  --accent: #0b7285;
+  --accent-ink: #085d6e;
+  --accent-soft: rgba(11, 114, 133, 0.08);
+  --warn: #b4540a;
+  --warn-soft: rgba(180, 84, 10, 0.07);
+  --line: #dbe3e9;
+  --code-bg: #eef3f5;
+  --code-ink: #14424c;
+  --chip-ink: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161b;
+    --surface: #171f26;
+    --ink: #e3ebf0;
+    --muted: #93a5b2;
+    --accent: #4fc0d3;
+    --accent-ink: #6fd0e0;
+    --accent-soft: rgba(79, 192, 211, 0.1);
+    --warn: #e8964e;
+    --warn-soft: rgba(232, 150, 78, 0.09);
+    --line: #2a3640;
+    --code-bg: #1d2830;
+    --code-ink: #a9d8e2;
+    --chip-ink: #0e1418;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10161b;
+  --surface: #171f26;
+  --ink: #e3ebf0;
+  --muted: #93a5b2;
+  --accent: #4fc0d3;
+  --accent-ink: #6fd0e0;
+  --accent-soft: rgba(79, 192, 211, 0.1);
+  --warn: #e8964e;
+  --warn-soft: rgba(232, 150, 78, 0.09);
+  --line: #2a3640;
+  --code-bg: #1d2830;
+  --code-ink: #a9d8e2;
+  --chip-ink: #0e1418;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  line-height: 1.85;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 5rem; }
+header { margin-bottom: 2.5rem; }
+.kicker {
+  font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin: 0 0 0.8rem;
+}
+h1 {
+  font-family: "Noto Serif SC", serif; font-weight: 900;
+  font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.25;
+  margin: 0 0 1rem; text-wrap: balance;
+}
+.lede { color: var(--muted); margin: 0; max-width: 40rem; }
+nav.toc {
+  margin: 2.2rem 0 0; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); padding: 1.1rem 1.3rem;
+}
+nav.toc p { margin: 0 0 0.5rem; font-size: 0.78rem; letter-spacing: 0.14em; color: var(--muted); font-weight: 700; }
+nav.toc ol {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.15rem 1.5rem;
+}
+nav.toc a { color: var(--ink); text-decoration: none; font-size: 0.93rem; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent-ink); }
+nav.toc li::before { content: counter(list-item, decimal-leading-zero) " "; color: var(--accent); font-family: "JetBrains Mono", monospace; font-size: 0.8rem; }
+section { margin-top: 3.5rem; }
+h2 {
+  font-family: "Noto Serif SC", serif; font-weight: 700;
+  font-size: 1.5rem; line-height: 1.4; margin: 0 0 0.4rem;
+  padding-top: 1.2rem; border-top: 2px solid var(--accent); text-wrap: balance;
+}
+h2 .no { font-family: "JetBrains Mono", monospace; font-size: 0.9rem; color: var(--accent); margin-right: 0.6em; font-weight: 600; }
+h3 {
+  font-weight: 700; font-size: 1.08rem; margin: 2rem 0 0.5rem; text-wrap: balance;
+}
+h3::before { content: "▸ "; color: var(--accent); }
+p { margin: 0.6rem 0; }
+.why { color: var(--muted); font-size: 0.92rem; margin-top: -0.1rem; }
+ul, ol { margin: 0.5rem 0 0.9rem; padding-left: 1.4rem; }
+li { margin: 0.3rem 0; }
+li::marker { color: var(--accent); }
+strong { font-weight: 700; }
+code {
+  font-family: "JetBrains Mono", "Menlo", monospace; font-size: 0.85em;
+  background: var(--code-bg); color: var(--code-ink);
+  padding: 0.1em 0.4em; border-radius: 4px;
+}
+pre {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0.8rem 0 1.2rem;
+}
+pre code { background: none; padding: 0; font-size: 0.84rem; line-height: 1.7; }
+.tablebox { overflow-x: auto; margin: 0.8rem 0 1.2rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.6; }
+th, td { text-align: left; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.8rem; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+.fix { border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0; }
+.fix b { color: var(--warn); }
+.callout {
+  border-left: 3px solid var(--accent); background: var(--accent-soft);
+  border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0;
+}
+.callout b { color: var(--accent-ink); }
+.f {
+  font-family: "JetBrains Mono", monospace; font-size: 0.68rem; font-weight: 600;
+  padding: 0.1em 0.55em; border-radius: 99px; white-space: nowrap;
+  vertical-align: 0.15em; margin-left: 0.5em; letter-spacing: 0.02em;
+}
+.f3 { background: var(--accent); color: var(--chip-ink); }
+.f2 { background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent); }
+.f1 { color: var(--muted); border: 1px solid var(--line); background: var(--surface); }
+td .f { margin-left: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.8rem 1.4rem; margin: 0.8rem 0 0; padding: 0; list-style: none; font-size: 0.88rem; color: var(--muted); }
+.legend li { margin: 0; }
+.qa { margin: 1.2rem 0; }
+.iq {
+  background: var(--accent-soft); border-radius: 10px 10px 10px 3px;
+  padding: 0.65rem 1rem; margin: 0.9rem 0 0.5rem; max-width: 92%;
+}
+.iq b { color: var(--accent-ink); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.ca {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px 10px 3px 10px;
+  padding: 0.65rem 1rem; margin: 0.5rem 0 0.5rem auto; max-width: 92%;
+}
+.ca b { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.note { color: var(--muted); font-size: 0.88rem; font-style: italic; margin: 0.4rem 0 1.1rem; padding-left: 1rem; border-left: 2px dashed var(--line); }
+footer { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+.meta{display:grid;grid-template-columns:6em 1fr;gap:.2rem 1rem;font-size:.92rem;border:1px solid var(--line);border-radius:8px;padding:.9rem 1.1rem;background:var(--surface);margin:1.2rem 0}
+.meta dt{color:var(--muted);font-weight:700}.meta dd{margin:0}
+h3 code{font-size:.8rem;vertical-align:.1em;margin-right:.2em}
+b.k{display:inline-block;color:var(--accent-ink);font-size:.78rem;letter-spacing:.1em;font-weight:700;margin-right:.5em;min-width:4.5em}
+td code{white-space:nowrap}
+section{margin-top:3rem}
+</style>
+</head>
+<body>
+<title>BL3 事故预推演</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<div class="wrap">
+<header>
+  <p class="kicker">Incident Pre-mortem · BL3 耗材与材料</p>
+  <h1>线上事故预推演与处置方案</h1>
+  <p class="lede">沿健康度计算、到期预测、提醒、下单归因、材料防伪、数据外供六条线逐段推演最可能的线上事故，给出触发、传播、检测信号、止血、恢复、根治与演练。</p>
+  <ul class="legend">
+    <li><span class="f f3">S1</span> 安全链路失效 / 刷砖 / 停线，15 分钟内止血</li>
+    <li><span class="f f2">S2</span> 核心链路 ≥ 10% 设备不可用</li>
+    <li><span class="f f1">S3 / S4</span> 单链路降级 / 内部指标异常</li>
+  </ul>
+  <dl class="meta">
+    <dt>文档版本</dt><dd>v0.1 · 2026-09-18</dd>
+    <dt>目的</dt><dd>BL3 上线前把健康度计算、换模块识别与预测、提醒、下单归因、材料防伪、数据外供六条线上最可能的事故推演一遍，每条给触发、传播、检测信号、止血、恢复、根治、演练</dd>
+    <dt>与 BL1 / BL4 预推演的关系</dt><dd>设备与平台侧看 docs/incident-premortem-bl1.md，用户入口与 BFF 看 docs/incident-premortem-bl4.md；本文只写 BL3 新增的 20 条。分级、处置四原则、临时关闭登记表沿用 BL1 §0 与 §10</dd>
+    <dt>编号</dt><dd>INC-3-xx</dd>
+  </dl>
+  <nav class="toc">
+    <p>目录</p>
+    <ol>
+      <li><a href="#1-事故清单总览">事故清单总览</a></li>
+      <li><a href="#2-健康度计算">健康度计算</a></li>
+      <li><a href="#3-换模块识别与预测">换模块识别与预测</a></li>
+      <li><a href="#4-提醒">提醒</a></li>
+      <li><a href="#5-归因与商城">归因与商城</a></li>
+      <li><a href="#6-材料防伪">材料防伪</a></li>
+      <li><a href="#7-数据外供与合规">数据外供与合规</a></li>
+      <li><a href="#8-运维">运维</a></li>
+      <li><a href="#9-演练计划">演练计划</a></li>
+      <li><a href="#10-p1-出口前必须补齐的能力">P1 出口前必须补齐的能力</a></li>
+    </ol>
+  </nav>
+</header>
+
+<p><strong>BL3 事故的三个特征</strong></p>
+<ol>
+<li><strong>错误的数字比没有数字更贵</strong>。health 算错会直接触发购买与更换；预测算错会让用户提前或延后备件。所有止血都先「停止写入 / 撤回提醒」，再修算法。</li>
+<li><strong>事故会传导到 BL4 与 BL6</strong>。BL4 校正系数吃 health，BL6 保修判定吃 laser_hours 与更换记录；BL3 的错误在别的业务线以另一种形态出现。</li>
+<li><strong>商业动作不可逆</strong>。用户已经下单、已经换了模块、已经因假码烧了材料，回滚数据不能回滚现实。检测靠对账与看板阈值，不靠投诉。</li>
+</ol>
+
+<h2 id="1-事故清单总览"><span class="no">01</span>事故清单总览</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>事故</th>
+<th>线</th>
+<th>级别</th>
+<th>第一检测信号</th>
+<th>止血时限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#inc-3-01-配置错导致集体跳变"><code>INC-3-01</code></a></td>
+<td>权重或额定时长配置错，全机型 health 集体跳变</td>
+<td>健康度</td>
+<td><span class="f f2">S2</span></td>
+<td>health 分布小时环比位移 &gt; 10 分</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-3-02-输入缺失算成-0-s1"><code>INC-3-02</code></a></td>
+<td>输入缺失被算成 0，大量「需更换」误提醒</td>
+<td>健康度</td>
+<td><span class="f f3">S1</span></td>
+<td>skipped 为 0 但 health=0 设备数突增；20 档提醒数突增</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-3-03-批作业挂或超时"><code>INC-3-03</code></a></td>
+<td>批作业挂或超时，health 陈旧，BL4 校正与 BL6 判定用旧值</td>
+<td>健康度</td>
+<td><span class="f f1">S3</span></td>
+<td>stale 比例 &gt; 1%；batch_duration 超 SLO</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-3-04-laser_hours-乱序或回退"><code>INC-3-04</code></a></td>
+<td>laser_hours 乱序或回退未识别为异常，加权时长虚增或虚减</td>
+<td>健康度</td>
+<td><span class="f f2">S2</span></td>
+<td>hours_regress / clipped 计数上升；health 非单调计数</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-3-05-流重建后口径混用"><code>INC-3-05</code></a></td>
+<td>telemetry_1h 流重建后历史桶缺列，兜底口径与新口径混用</td>
+<td>健康度</td>
+<td><span class="f f1">S3</span></td>
+<td>同设备相邻桶 share_* 为 NULL 与非 NULL 混合</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-3-06-换模块漏检"><code>INC-3-06</code></a></td>
+<td>换模块漏检：用户换了新模块 health 仍显示 20，持续提醒更换</td>
+<td>预测</td>
+<td><span class="f f2">S2</span></td>
+<td>用户点「已更换」后 24 h 未确认的比例 &gt; 10%</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-3-07-换模块误检"><code>INC-3-07</code></a></td>
+<td>换模块误检：固件重置 laser_hours 被当成更换，health 错误重置为 100</td>
+<td>预测</td>
+<td><span class="f f2">S2</span></td>
+<td>module_swap reason=hours_reset 在某固件版本集中</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-3-08-sku-映射错-s1"><code>INC-3-08</code></a></td>
+<td>SKU 映射错，批量买错件</td>
+<td>归因</td>
+<td><span class="f f3">S1</span></td>
+<td>该映射版本订单退货率 &gt; 基线 2 倍；客服工单</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-3-09-冷却失效提醒风暴"><code>INC-3-09</code></a></td>
+<td>冷却失效，提醒风暴</td>
+<td>提醒</td>
+<td><span class="f f2">S2</span></td>
+<td>单 SN 7 天内 sent &gt; 1；打扰率上升</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-3-10-阈值抖动"><code>INC-3-10</code></a></td>
+<td>阈值抖动：health 在 50 附近来回，反复跨档</td>
+<td>提醒</td>
+<td><span class="f f1">S3</span></td>
+<td>同 SN 同档 suppressed 数上升</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-3-11-加工中弹出或-deferred-丢失"><code>INC-3-11</code></a></td>
+<td>提醒弹在加工中或 deferred 队列丢失</td>
+<td>提醒</td>
+<td><span class="f f1">S3</span></td>
+<td>deferred 计数与后续 sent 不匹配；投诉</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-3-12-商城回调丢失或重复"><code>INC-3-12</code></a></td>
+<td>商城回调丢失或重复，归因偏低或偏高</td>
+<td>归因</td>
+<td><span class="f f1">S3</span></td>
+<td>每日对账差 &gt; 1%</td>
+<td>24 h</td>
+</tr>
+<tr>
+<td><a href="#inc-3-13-密钥泄露或映射错-s1"><code>INC-3-13</code></a></td>
+<td>材料码密钥泄露或映射错，假材料带出官方参数烧材</td>
+<td>防伪</td>
+<td><span class="f f3">S1</span></td>
+<td>同批次 verified=true 但 suspicious 激增；burnt 标记集中在某 batch</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-3-14-验签不可用放行"><code>INC-3-14</code></a></td>
+<td>验签服务不可用，客户端只做格式校验放行</td>
+<td>防伪</td>
+<td><span class="f f2">S2</span></td>
+<td>verify 5xx 比例；客户端「未联网验证」比例</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-3-15-正版码误判-suspicious"><code>INC-3-15</code></a></td>
+<td>正版码被误判 suspicious，用户扫码被拒</td>
+<td>防伪</td>
+<td><span class="f f1">S3</span></td>
+<td>suspicious 数突增且集中于教育账号（多人共用）</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-3-16-stale-标记失效"><code>INC-3-16</code></a></td>
+<td>外供接口 stale 标记失效，BL4 用陈旧 health 校正</td>
+<td>外供</td>
+<td><span class="f f2">S2</span></td>
+<td>BL4 correction 请求中 health 的 updated_at 分布</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-3-17-保修口径未版本化"><code>INC-3-17</code></a></td>
+<td>保修接口口径变更未版本化，BL6 判定结果漂移</td>
+<td>外供</td>
+<td><span class="f f2">S2</span></td>
+<td>BL6 争议率上升；接口 model_version 变化无公告</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-3-18-health-与-user_id-同表-s1"><code>INC-3-18</code></a></td>
+<td>health 与 user_id 出现在同一导出或表中</td>
+<td>合规</td>
+<td><span class="f f3">S1</span></td>
+<td>数据字典审计</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-3-19-批作业重叠运行"><code>INC-3-19</code></a></td>
+<td>批作业两轮重叠运行，累计量重复累加</td>
+<td>运维</td>
+<td><span class="f f2">S2</span></td>
+<td>used_weighted 单桶增量 &gt; 1 h × 权重上限</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-3-20-可售状态同步失败"><code>INC-3-20</code></a></td>
+<td>商城可售状态同步失败，提醒跳转死链</td>
+<td>归因</td>
+<td><span class="f f1">S3</span></td>
+<td>click 后 302 目标 404 率</td>
+<td>1 h</td>
+</tr>
+</tbody>
+</table></div>
+
+<h2 id="2-健康度计算"><span class="no">02</span>健康度计算</h2>
+<h3 id="inc-3-01-配置错导致集体跳变"><code>INC-3-01</code> 配置错导致集体跳变</h3>
+<p><b class="k">触发</b>运营把 rated_weighted_hours 从 10000 填成 1000，或 w_high 填成 18；配置生效后下一轮批作业全机型 health 跳变。</p>
+<p><b class="k">传播</b>跳变过 80 / 50 / 20 档 → 大量提醒 → 购买；BL4 校正系数随 health 变化上调功率。</p>
+<p><b class="k">检测信号</b>按 product_key × module_model 的 health 分布小时环比位移 &gt; 10 分即告警；配置变更后首轮批作业自动与上一轮比对，位移 &gt; 10 分暂停写入等人工确认。</p>
+<p><b class="k">止血</b>配置回滚到上一 version（配置表按 version 追加，不覆盖）；本轮已写入的 consumable_health 按 model_version 回滚（health_explain 保留了上一轮值）；已发提醒撤回并推送更正文案。</p>
+<p><b class="k">根治</b>配置变更走双人审批与 CHECK 范围；首轮「影子运行」只算不写，比对通过才生效。</p>
+<p><b class="k">演练</b>staging 把 rated 改小 10 倍，验证影子运行拦截。</p>
+
+<h3 id="inc-3-02-输入缺失算成-0-s1"><code>INC-3-02</code> 输入缺失算成 0（S1）</h3>
+<p><b class="k">触发</b>代码把 telemetry_1h 无行当作 laser_hours=0 且 Δ 计算得到「用完了」；或配置缺失时默认 rated=0 导致除零后 clamp 到 0。</p>
+<p><b class="k">传播</b>一夜之间数万台 health=0 → 20 档「建议更换」提醒 → 用户下单 → 客服爆量 → 信任崩塌。这是 BL3 最贵的事故。</p>
+<p><b class="k">检测信号</b>health=0 设备数小时环比 &gt; 100 台；skipped 计数为 0 而 total 正常（说明缺失没被识别为缺失）；20 档提醒数环比 &gt; 5 倍。批级缺失率熔断应先于此触发。</p>
+<p><b class="k">止血（5 分钟内）</b>暂停批作业；对本轮 model_version 的写入按 health_explain 上一值回滚；撤回本轮 20 档提醒并推送更正；商城侧对本轮 reminder_id 的订单标记「可无理由退换」。</p>
+<p><b class="k">根治</b>缺失不写 0 是代码原则并有单测锁定（缺 rows / cfg / model 三种）；批级缺失率熔断；health 单调性检查（0 的跳变一定非单调）；20 档提醒增加二次确认（连续两轮 ≤ 20 才发）。</p>
+
+<h3 id="inc-3-03-批作业挂或超时"><code>INC-3-03</code> 批作业挂或超时</h3>
+<p><b class="k">触发</b>TDengine 慢查询；PG 分片锁等待；health-svc 全部副本挂。</p>
+<p><b class="k">传播</b>health 陈旧 → 外供接口 stale=true → BL4 退回 k=1（正确降级）、BL6 判定用旧数据（需人工注意）→ 提醒延迟。</p>
+<p><b class="k">检测信号</b>stale 比例 &gt; 1%；batch_duration &gt; 10 min；连续两轮无写入。</p>
+<p><b class="k">止血</b>重启服务；TDengine 慢查询改按 cell 范围查询（方案 §13.1）。</p>
+<p><b class="k">根治</b>批作业按 cell 分片多副本；每轮开始写心跳，上一轮未结束下一轮跳过并告警（INC-3-19）。</p>
+
+<h3 id="inc-3-04-laser_hours-乱序或回退"><code>INC-3-04</code> laser_hours 乱序或回退</h3>
+<p><b class="k">触发</b>设备重连后补报旧数据；固件 bug 让 laser_hours 偶发回退；乱序到达导致相邻桶 Δ 为负。</p>
+<p><b class="k">传播</b>Δ&lt;0 若被累加会让 used_weighted 减少（health 上升，被单调性拦下），Δ 异常大若不截断则虚增（health 骤降，触发提醒）。</p>
+<p><b class="k">检测信号</b>hours_regress / hours_clipped 计数上升；health_nonmonotonic 计数。</p>
+<p><b class="k">止血</b>对受影响 SN 触发 recompute（幂等）。</p>
+<p><b class="k">根治</b>Δ 截断规则与单测；连续 2 桶回落才判更换（INC-3-07）；异常率进看板按固件版本切片交固件团队。</p>
+
+<h3 id="inc-3-05-流重建后口径混用"><code>INC-3-05</code> 流重建后口径混用</h3>
+<p><b class="k">触发</b>telemetry_1h 流增加 share_* 列后重建，历史桶无该列；兜底逻辑用 avg_power 单档，与新桶三档加权口径不一致。</p>
+<p><b class="k">传播</b>同一设备累计量前后口径不一，health 曲线出现斜率突变。</p>
+<p><b class="k">检测信号</b>share_* NULL 与非 NULL 在同 SN 相邻桶混合的比例。</p>
+<p><b class="k">止血</b>无需紧急动作；口径差异在 explain 中标注 <code>bucket_fallback_count</code>。</p>
+<p><b class="k">根治</b>流重建同时对历史用 health-svc 的 backfill 命令按 telemetry 原始表重算 share_*（原始表 KEEP 90 天内可算）。</p>
+
+<h2 id="3-换模块识别与预测"><span class="no">03</span>换模块识别与预测</h2>
+<h3 id="inc-3-06-换模块漏检"><code>INC-3-06</code> 换模块漏检</h3>
+<p><b class="k">触发</b>新模块与旧模块 module_model 相同（同型号更换）且固件未重置 laser_hours（或重置后单桶被当乱序）；用户点「已更换」但 24 h 内无信号确认。</p>
+<p><b class="k">传播</b>health 仍 20，持续「建议更换」；用户认为系统不可信。</p>
+<p><b class="k">检测信号</b>user_marked 后 24 h 未确认比例 &gt; 10%；同型号更换占比。</p>
+<p><b class="k">止血</b>用户标记 48 h 内无矛盾信号（laser_hours 未继续大幅增长）→ 接受用户标记为更换（reason=user_marked_accepted），health 重置。</p>
+<p><b class="k">根治</b>DR-303 模块计时芯片上报 module_hours 是最可靠信号，推动进硬件排期；同型号更换要求固件在检测到模块重新插拔时重置 laser_hours 并上报 MODULE_SWAPPED 事件。</p>
+
+<h3 id="inc-3-07-换模块误检"><code>INC-3-07</code> 换模块误检</h3>
+<p><b class="k">触发</b>某固件版本升级后 laser_hours 计数从 0 重新累计（固件 bug），被判定 hours_reset 更换 → health 重置 100。</p>
+<p><b class="k">传播</b>老模块显示满健康度 → 不提醒 → 用户在模块寿命末期无预警停机；BL6 保修判定以为是新模块。</p>
+<p><b class="k">检测信号</b>module_swap reason=hours_reset 在某 fw_version 集中（&gt; 该版本设备的 5%）；无对应 module_model 变化。</p>
+<p><b class="k">止血</b>对该固件版本的 hours_reset 判定暂停；已重置设备用 health_explain 上一值恢复累计（recompute since 上次真实更换）。</p>
+<p><b class="k">根治</b>hours_reset 判定要求同时满足「无 OTA 事件在前 24 h」；固件 OTA 后的 laser_hours 连续性纳入 OTA 验收项。</p>
+
+<h2 id="4-提醒"><span class="no">04</span>提醒</h2>
+<h3 id="inc-3-09-冷却失效提醒风暴"><code>INC-3-09</code> 冷却失效提醒风暴</h3>
+<p><b class="k">触发</b>last_sent_at 读取用了 health_reminder 最新一行（可能是 suppressed 行，sent_at 为空）→ 判定为「从未发过」；或多副本各自判定。</p>
+<p><b class="k">传播</b>同一设备每小时一条提醒；打扰率飙升；用户关闭提醒甚至联网。</p>
+<p><b class="k">检测信号</b>单 SN 7 天内 sent &gt; 1 的设备数 &gt; 0（对账 SQL 每小时）；打扰率日环比。</p>
+<p><b class="k">止血</b>全局关闭提醒发送（仍记录判定），登记；给受影响用户推送一次致歉并默认延长冷却到 30 天。</p>
+<p><b class="k">根治</b>冷却判定用 <code>max(sent_at)</code> 而非最新行；提醒发送由单实例或 PG advisory lock 串行；对账 SQL 进每小时任务。</p>
+
+<h3 id="inc-3-10-阈值抖动"><code>INC-3-10</code> 阈值抖动</h3>
+<p><b class="k">触发</b>health 在 50.2 与 49.8 间因输入噪声来回；跨档判定每次都触发（虽然被冷却抑制，但 suppressed 行暴涨，且 7 天后会再发）。</p>
+<p><b class="k">检测信号</b>同 SN 同档 suppressed 数 &gt; 3 / 周。</p>
+<p><b class="k">根治</b>跨档带滞回（回升需 &gt; level + 3 才重新武装该档）；levels_sent 在更换前不清零，同档终身一次已在设计中，抖动只影响 suppressed 计数，不影响用户。</p>
+
+<h3 id="inc-3-11-加工中弹出或-deferred-丢失"><code>INC-3-11</code> 加工中弹出或 deferred 丢失</h3>
+<p><b class="k">触发</b>work_state 读影子时影子陈旧（设备刚开始作业，影子还是 0）；或 Redis 重启丢失 health:pending。</p>
+<p><b class="k">传播</b>加工中弹出打扰；或 deferred 后永远不发。</p>
+<p><b class="k">检测信号</b>deferred 计数与 24 h 内后续 sent 数差 &gt; 5%；用户投诉。</p>
+<p><b class="k">止血</b>pending 改存 PG health_reminder(suppressed_reason='deferred') 并由批作业下一轮重判。</p>
+<p><b class="k">根治</b>作业中判定同时看影子 updated_at 新鲜度（&gt; 90 s 视为未知，按作业中处理，宁可延后）；deferred 持久化到 PG。</p>
+
+<h2 id="5-归因与商城"><span class="no">05</span>归因与商城</h2>
+<h3 id="inc-3-08-sku-映射错-s1"><code>INC-3-08</code> SKU 映射错（S1）</h3>
+<p><b class="k">触发</b>运营把 LM40 的模块 SKU 填成 LM20；或映射按 product_key 未区分 module_model。</p>
+<p><b class="k">传播</b>所有该组合的提醒都带错误 SKU → 用户一键下单 → 收货不匹配 → 退货、差评、客服。</p>
+<p><b class="k">检测信号</b>按映射版本切片的退货率 &gt; 基线 2 倍；客服工单关键词「不匹配」；映射变更后 24 h 内该 SKU 订单量异常。</p>
+<p><b class="k">止血（15 分钟内）</b>映射回滚到上一版本；商城侧对 ref=xt_reminder 且 sku 为该值的未发货订单拦截；从 reminder_attribution 拉出已下单用户主动联系换货。</p>
+<p><b class="k">根治</b>双人审批 CHECK；映射变更灰度（先 10% 提醒带新映射）；退货率按映射版本进看板并设自动回滚阈值；商品页显示「适配机型 / 模块」供用户二次确认。</p>
+
+<h3 id="inc-3-12-商城回调丢失或重复"><code>INC-3-12</code> 商城回调丢失或重复</h3>
+<p><b class="k">触发</b>商城回调重试导致同 order_id 两次；网络问题回调丢失。</p>
+<p><b class="k">传播</b>重复 → 归因偏高（被 order_id UNIQUE 拦下则无影响）；丢失 → 转化率偏低，运营误判提醒无效。</p>
+<p><b class="k">检测信号</b>每日对账差 &gt; 1%。</p>
+<p><b class="k">止血</b>按商城导出补录。</p>
+<p><b class="k">根治</b>order_id UNIQUE + reminder_id PK 双幂等；主动轮询商城订单接口补偿；报转化率先报对账差。</p>
+
+<h3 id="inc-3-20-可售状态同步失败"><code>INC-3-20</code> 可售状态同步失败</h3>
+<p><b class="k">触发</b>商城同步任务失败，sellable 停留在 true 而商品已下架。</p>
+<p><b class="k">传播</b>提醒购买按钮跳转 404；用户体验差且转化率失真。</p>
+<p><b class="k">止血</b>sellable 同步失败超 2 小时 → 全部按不可售处理（显示「联系客服」而非死链）。</p>
+<p><b class="k">根治</b>同步心跳监控；302 前实时探测商品页可用性（HEAD，300 ms 超时，失败降级）。</p>
+
+<h2 id="6-材料防伪"><span class="no">06</span>材料防伪</h2>
+<h3 id="inc-3-13-密钥泄露或映射错-s1"><code>INC-3-13</code> 密钥泄露或映射错（S1）</h3>
+<p><b class="k">触发</b>批次密钥从供应链工位泄露，假材料印上可验签的码；或 material_code.material_id 登记错（3 mm 码登记为 5 mm）。</p>
+<p><b class="k">传播</b>假材料或错材料带出官方参数 → 烧焦、切不透，极端情况起火；用户信任「官方码」而不试切。</p>
+<p><b class="k">检测信号</b>某 batch 的 burnt / uncut 标记率 &gt; 同材料基线 2 倍（BL4 job_feedback）；同 batch suspicious 激增；供应链报告丢失。</p>
+<p><b class="k">止血（立即）</b>吊销该 batch 密钥与全部码（status=revoked）；客户端对 revoked 码提示「请手动选择材料」；推送使用过该批次的用户「请核对材料厚度」。</p>
+<p><b class="k">根治</b>密钥按批次派生可单独吊销；登记走双人核对（扫样品码回读 material_id）；burnt 率按 batch 切片进看板并设自动 suspicious。</p>
+
+<h3 id="inc-3-14-验签不可用放行"><code>INC-3-14</code> 验签不可用放行</h3>
+<p><b class="k">触发</b>health-svc 挂；客户端只做格式校验并带参数。</p>
+<p><b class="k">传播</b>假码在离线期间被当正版（格式校验能被逆向绕过）。</p>
+<p><b class="k">检测信号</b>verify 5xx；客户端上报「未联网验证」比例 &gt; 5%。</p>
+<p><b class="k">止血</b>客户端策略：未联网验证的码可带参数但显示黄色提示「未验证」，且不写 material_code_scan.verified=true；恢复后补验。</p>
+<p><b class="k">根治</b>verify 接口多副本；格式校验只用于用户体验不作为信任来源（设计原则）。</p>
+
+<h3 id="inc-3-15-正版码误判-suspicious"><code>INC-3-15</code> 正版码误判 suspicious</h3>
+<p><b class="k">触发</b>教育机构一个材料包多人共用，同码 30 天内 &gt; 5 账号扫描。</p>
+<p><b class="k">传播</b>正版用户被提示可疑，扫码不带参数。</p>
+<p><b class="k">检测信号</b>suspicious 集中于 BL5 教育账号或同一 IP 段。</p>
+<p><b class="k">止血</b>suspicious 只提示不阻断（设计中）；对 BL5 组织账号按组织计数而非按用户。</p>
+<p><b class="k">根治</b>阈值按账号类型区分；同组织内成员扫描算一个 distinct。</p>
+
+<h2 id="7-数据外供与合规"><span class="no">07</span>数据外供与合规</h2>
+<h3 id="inc-3-16-stale-标记失效"><code>INC-3-16</code> stale 标记失效</h3>
+<p><b class="k">触发</b>接口用缓存返回，updated_at 是缓存时间而非 consumable_health 的；或 stale 阈值配置错。</p>
+<p><b class="k">传播</b>BL4 用陈旧 health 校正功率；BL6 用陈旧数据判定。</p>
+<p><b class="k">检测信号</b>对账 GET /health 返回的 updated_at 与表中值差 &gt; 1 min 的比例。</p>
+<p><b class="k">止血</b>关闭接口缓存。</p>
+<p><b class="k">根治</b>stale 由数据库字段计算不依赖缓存；接口契约测试断言 stale 语义。</p>
+
+<h3 id="inc-3-17-保修口径未版本化"><code>INC-3-17</code> 保修口径未版本化</h3>
+<p><b class="k">触发</b>health-svc 改了加权口径但 GET /warranty 返回字段不带 model_version；BL6 用新口径判定历史争议。</p>
+<p><b class="k">传播</b>同一设备昨天「正常使用」今天「超负荷使用」，保修争议率上升。</p>
+<p><b class="k">止血</b>接口立即加 model_version，BL6 按判定当时版本复算。</p>
+<p><b class="k">根治</b>所有外供接口带 model_version；口径变更公告与双业务线验收。</p>
+
+<h3 id="inc-3-18-health-与-user_id-同表-s1"><code>INC-3-18</code> health 与 user_id 同表（S1）</h3>
+<p><b class="k">触发</b>为方便看板把 reminder_attribution 与 health_reminder 做成宽表并导出；或 material_code_scan 与 consumable_health JOIN 导出含 user_id 与 health。</p>
+<p><b class="k">传播</b>设备使用行为与个人身份在同一处出现，违反数据分级承诺。</p>
+<p><b class="k">检测信号</b>数据字典审计；导出任务的列名扫描（同时含 user_id 与 health / laser_hours 即拦截）。</p>
+<p><b class="k">止血</b>删除导出；审计影响范围。</p>
+<p><b class="k">根治</b>看板查询只允许经聚合视图；导出任务列白名单进 CI。</p>
+
+<h2 id="8-运维"><span class="no">08</span>运维</h2>
+<h3 id="inc-3-19-批作业重叠运行"><code>INC-3-19</code> 批作业重叠运行</h3>
+<p><b class="k">触发</b>上一轮超 1 小时未结束，下一轮定时启动；或多副本同时跑。</p>
+<p><b class="k">传播</b>同一小时桶被累加两次 → used_weighted 虚增 → health 骤降 → 提醒。</p>
+<p><b class="k">检测信号</b>health_explain 单桶增量 &gt; 1 h × w_high；批心跳重叠。</p>
+<p><b class="k">止血</b>停掉重叠实例；对受影响 SN recompute。</p>
+<p><b class="k">根治</b>PG advisory lock 保证单轮；last_bucket_ts 严格大于比较天然幂等（同桶不会二次累加，设计已保证，此事故主要影响性能与锁竞争）。</p>
+
+<h2 id="9-演练计划"><span class="no">09</span>演练计划</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>演练</th>
+<th>剧本</th>
+<th>对应事故</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P1 迭代 1</td>
+<td>缺失熔断</td>
+<td>停 telemetry_1h 写入后跑批，验证整轮不写且告警</td>
+<td><a href="#inc-3-02-输入缺失算成-0-s1"><code>INC-3-02</code></a></td>
+</tr>
+<tr>
+<td>P1 迭代 1</td>
+<td>配置影子运行</td>
+<td>把 rated 改小 10 倍，验证拦截</td>
+<td><a href="#inc-3-01-配置错导致集体跳变"><code>INC-3-01</code></a></td>
+</tr>
+<tr>
+<td>P1 迭代 1</td>
+<td>换模块</td>
+<td>模拟器 -module-swap 与 hours 归零两种，验证识别与重置</td>
+<td>INC-3-06 / 07</td>
+</tr>
+<tr>
+<td>P1 迭代 2</td>
+<td>冷却</td>
+<td>模拟器 -laser-hours-rate 3600 让 health 一小时跨三档，验证只发一次</td>
+<td>INC-3-09 / 10</td>
+</tr>
+<tr>
+<td>P1 迭代 2</td>
+<td>假码</td>
+<td>用错误密钥生成 100 个码，验证 100% 拒；同码 6 账号 suspicious</td>
+<td>INC-3-13 / 15</td>
+</tr>
+<tr>
+<td>P1 迭代 2</td>
+<td>映射回滚</td>
+<td>staging 发错映射 → 回滚计时</td>
+<td><a href="#inc-3-08-sku-映射错-s1"><code>INC-3-08</code></a></td>
+</tr>
+<tr>
+<td>P1 出口</td>
+<td>安全隔离</td>
+<td>停 health-svc 跑 BL1 冒烟五步</td>
+<td>架构约束</td>
+</tr>
+<tr>
+<td>每月</td>
+<td>对账巡检</td>
+<td>归因对账差、stale 比例、user_id/health 同表扫描</td>
+<td>INC-3-12 / 16 / 18</td>
+</tr>
+</tbody>
+</table></div>
+
+<h2 id="10-p1-出口前必须补齐的能力"><span class="no">10</span>P1 出口前必须补齐的能力</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>能力</th>
+<th>对应事故</th>
+<th>优先级</th>
+<th>状态（2026-09-19）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>缺失不写 0 单测锁定 + 批级缺失率熔断 + 20 档二次确认</td>
+<td><a href="#inc-3-02-输入缺失算成-0-s1"><code>INC-3-02</code></a></td>
+<td>P1</td>
+<td>已实现 ComputeHealth + ShouldFuseBatch，单测与集成测试锁定；20 档二次确认未做</td>
+</tr>
+<tr>
+<td>配置版本化 + 首轮影子运行比对</td>
+<td><a href="#inc-3-01-配置错导致集体跳变"><code>INC-3-01</code></a></td>
+<td>P1</td>
+<td>配置已版本化 health_model_cfg.version；影子运行比对未做</td>
+</tr>
+<tr>
+<td>health 单调性检查与 explain 保留上一值（可回滚）</td>
+<td>INC-3-01 / 02 / 04</td>
+<td>P1</td>
+<td>已实现 Monotonic + health_explain</td>
+</tr>
+<tr>
+<td>冷却用 max(sent_at)、发送串行化、每小时对账 SQL</td>
+<td><a href="#inc-3-09-冷却失效提醒风暴"><code>INC-3-09</code></a></td>
+<td>P1</td>
+<td>已实现 LastSentAt + runMu 串行；每小时对账未做</td>
+</tr>
+<tr>
+<td>deferred 持久化 PG、影子新鲜度判定</td>
+<td><a href="#inc-3-11-加工中弹出或-deferred-丢失"><code>INC-3-11</code></a></td>
+<td>P1</td>
+<td>deferred 已落 health_reminder.suppressed_reason；影子新鲜度判定未做</td>
+</tr>
+<tr>
+<td>sku_mapping 双人审批 CHECK + 退货率按版本看板</td>
+<td><a href="#inc-3-08-sku-映射错-s1"><code>INC-3-08</code></a></td>
+<td>P1</td>
+<td>已实现 ck_sku_approved；看板未做</td>
+</tr>
+<tr>
+<td>材料码按批次派生密钥、可吊销、burnt 率按 batch 看板</td>
+<td><a href="#inc-3-13-密钥泄露或映射错-s1"><code>INC-3-13</code></a></td>
+<td>P1</td>
+<td>已实现 DeriveBatchKey 与 status 吊销，单测覆盖跨批次验签失败；看板未做</td>
+</tr>
+<tr>
+<td>外供接口带 model_version 与 stale 由 DB 字段计算</td>
+<td>INC-3-16 / 17</td>
+<td>P1</td>
+<td>已实现，集成测试覆盖 stale</td>
+</tr>
+<tr>
+<td>导出列白名单进 CI</td>
+<td><a href="#inc-3-18-health-与-user_id-同表-s1"><code>INC-3-18</code></a></td>
+<td>P1</td>
+<td>未做</td>
+</tr>
+<tr>
+<td>批作业 advisory lock + 心跳</td>
+<td><a href="#inc-3-19-批作业重叠运行"><code>INC-3-19</code></a></td>
+<td>P1</td>
+<td>未做：当前只有进程内 runMu，多副本需 advisory lock</td>
+</tr>
+<tr>
+<td>hours_reset 判定排除 OTA 后 24 h</td>
+<td><a href="#inc-3-07-换模块误检"><code>INC-3-07</code></a></td>
+<td>P1</td>
+<td>未做</td>
+</tr>
+<tr>
+<td>商城可售探测与死链降级</td>
+<td><a href="#inc-3-20-可售状态同步失败"><code>INC-3-20</code></a></td>
+<td>P1</td>
+<td>未做</td>
+</tr>
+</tbody>
+</table></div>
+
+<footer>
+  <p>本文与 docs/incident-premortem-bl1.md、docs/incident-premortem-bl4.md 配套：设备与平台看 BL1，入口与 BFF 看 BL4，耗材决策链路看本文。每次真实事故后按 docs/incident-register-storm.md 的格式复盘，并把新教训回写到对应 INC-3 条目。</p>
+</footer>
+</div>
+
+</body>
+</html>

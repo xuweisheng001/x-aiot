@@ -50,3 +50,15 @@ func InStage(sn string, stagePct float64) bool {
 	}
 	return Bucket(sn) < stagePct/100
 }
+
+// FirstStage 是任何固件的第一个允许档位。
+const FirstStage = "0.1"
+
+// ExpectedNextStage 返回某固件下一批次唯一允许的档位：没有任何批次时只能是 FirstStage；
+// 否则必须是最新批次的 NextStage。latest 已是 100 时 ok=false（无法再建）。
+func ExpectedNextStage(latest string, exists bool) (string, bool) {
+	if !exists {
+		return FirstStage, true
+	}
+	return NextStage(latest)
+}

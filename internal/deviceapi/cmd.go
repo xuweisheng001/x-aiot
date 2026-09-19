@@ -16,7 +16,8 @@ type Decision struct {
 	Msg        string
 }
 
-var whitelist = map[string]bool{"pause": true, "stop": true, "self_check": true}
+// job_start 属白名单，但另有一道来源 + 空闲判定（DecideJobStart，BL5 §17.3）。
+var whitelist = map[string]bool{"pause": true, "stop": true, "self_check": true, ActionJobStart: true}
 
 // DecideCmd 纯函数：白名单 pause/stop/self_check；remote_restart → 403/10003；其他 → 400/10001。
 func DecideCmd(action string) Decision {

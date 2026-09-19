@@ -81,6 +81,20 @@ func LoadOrGenerateKey(path string) (key *rsa.PrivateKey, generated bool, err er
 	return k, false, nil
 }
 
+// LoadKeyStrict 读取 PEM 私钥，文件缺失或不可解析一律返回 error，不生成临时密钥。
+// 生产（IOT_CF001_REQUIRE_KEY=true）必须走这里：用临时密钥签出的 SN 在重启后全部失效，等价于产线事故（INC-22）。
+func LoadKeyStrict(path string) (*rsa.PrivateKey, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read key %s: %w", path, err)
+	}
+	k, err := ParsePrivateKeyPEM(b)
+	if err != nil {
+		return nil, fmt.Errorf("parse key %s: %w", path, err)
+	}
+	return k, nil
+}
+
 func ParsePrivateKeyPEM(b []byte) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode(b)
 	if block == nil {

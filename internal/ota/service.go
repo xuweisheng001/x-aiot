@@ -37,13 +37,24 @@ type Service struct {
 	limiter *rate.Limiter
 	// MinSamples 熔断最小样本数（默认 50）。
 	MinSamples int
+	// MinAbsFail 绝对数熔断阈值（默认 5；<=0 关闭），见 ShouldFuseAbs。
+	MinAbsFail int
+	// Now 供测试固定时钟（维护窗口判定用）；nil = time.Now。
+	Now func() time.Time
+}
+
+func (s *Service) now() time.Time {
+	if s.Now != nil {
+		return s.Now()
+	}
+	return time.Now()
 }
 
 func NewService(db *pgxpool.Pool, pub Publisher, m *Metrics, dispatchRPS int) *Service {
 	if dispatchRPS <= 0 {
 		dispatchRPS = DefaultDispatchRPS
 	}
-	return &Service{DB: db, Pub: pub, M: m, MinSamples: MinFuseSamples,
+	return &Service{DB: db, Pub: pub, M: m, MinSamples: MinFuseSamples, MinAbsFail: DefaultMinAbsFail,
 		limiter: rate.NewLimiter(rate.Limit(dispatchRPS), dispatchRPS)}
 }
 
@@ -101,11 +112,19 @@ type BatchReq struct {
 	CreatedBy     string   `json:"created_by"`
 	ApprovedBy    string   `json:"approved_by,omitempty"`
 	FailRatioFuse *float64 `json:"fail_ratio_fuse,omitempty"`
+	// ExplicitSNs 非空时跳过 product_key + md5 抽样圈选，直接按给定 SN 建任务（BL5 §08 组织子批次）。
+	ExplicitSNs []string `json:"explicit_sns,omitempty"`
+	// ParentBatchID 非空表示这是某个平台批次的子批次：不参与该固件的档位顺序链，
+	// 档位 / 审批人 / 熔断阈值一律继承父批次（组织只决定「哪些设备、什么时候」，§8.2）。
+	ParentBatchID *int64 `json:"parent_batch_id,omitempty"`
+	// Policy 是下发策略，目前只识别 window（维护窗口，见 window.go）。
+	Policy json.RawMessage `json:"policy,omitempty"`
 }
 
 type Batch struct {
 	ID            int64      `json:"id"`
 	FirmwareID    int64      `json:"firmware_id"`
+	ParentBatchID *int64     `json:"parent_batch_id,omitempty"`
 	Stage         string     `json:"stage"`
 	Status        string     `json:"status"`
 	TargetTotal   int        `json:"target_total"`
@@ -122,12 +141,12 @@ type Batch struct {
 // CreateBatch 建批次并圈选设备。stage='100' 且 approved_by 为空时 **由 PG CHECK 拒绝**，
 // 代码只负责把 23514 翻译成 ErrNeedsApproval——约束即护栏，不在代码里重复判断。
 func (s *Service) CreateBatch(ctx context.Context, r BatchReq) (*Batch, error) {
-	pct, err := StagePct(r.Stage)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrBadParam, err)
-	}
 	if r.FirmwareID <= 0 || r.CreatedBy == "" {
 		return nil, fmt.Errorf("%w: firmware_id/created_by required", ErrBadParam)
+	}
+	// 窗口在建批时就校验：错格式当场 400，而不是等 DispatchOnce 静默跳过（window.go）。
+	if _, err := ParseWindow(r.Policy); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrBadParam, err)
 	}
 	fuse := DefaultFuseRatio
 	if r.FailRatioFuse != nil {
@@ -152,11 +171,70 @@ func (s *Service) CreateBatch(ctx context.Context, r BatchReq) (*Batch, error) {
 		return nil, err
 	}
 
+	if r.ParentBatchID != nil {
+		// 子批次（组织批量 OTA）：**不参与父固件的档位顺序链**——否则每个组织都要从 0.1 重来一遍。
+		// 档位、审批人、熔断阈值一律继承父批次：组织只决定「哪些设备、什么时候」（§8.2），
+		// ck_full_stage_approved 与熔断照常生效（继承来的 approved_by 就是父批次的双人审批记录）。
+		var pStage string
+		var pApproved *string
+		var pFuse float64
+		var pFirmware int64
+		var pParent *int64
+		err = tx.QueryRow(ctx,
+			`SELECT firmware_id, parent_batch_id, stage, approved_by, fail_ratio_fuse::float8
+			 FROM iot_global.ota_batch WHERE id=$1 FOR UPDATE`, *r.ParentBatchID).
+			Scan(&pFirmware, &pParent, &pStage, &pApproved, &pFuse)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("%w: parent batch %d", ErrNotFound, *r.ParentBatchID)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if pParent != nil {
+			return nil, fmt.Errorf("%w: batch %d is itself a sub-batch", ErrBadParam, *r.ParentBatchID)
+		}
+		if pFirmware != r.FirmwareID {
+			return nil, fmt.Errorf("%w: parent batch %d belongs to firmware %d", ErrBadParam, *r.ParentBatchID, pFirmware)
+		}
+		if r.Stage == "" {
+			r.Stage = pStage
+		}
+		if r.ApprovedBy == "" && pApproved != nil {
+			r.ApprovedBy = *pApproved
+		}
+		fuse = pFuse // 请求里的 fail_ratio_fuse 一律忽略：子批次不能放宽熔断
+	} else {
+		// 档位顺序：同一固件必须 0.1 → 1 → 10 → 50 → 100 逐档建批，不允许越级（预推演 INC-17）。
+		// FOR UPDATE 锁住最新**平台**批次行（子批次不入链，故 parent_batch_id IS NULL），防止并发建两个"下一档"。
+		var latest string
+		err = tx.QueryRow(ctx, `SELECT stage FROM iot_global.ota_batch WHERE firmware_id=$1 AND parent_batch_id IS NULL ORDER BY id DESC LIMIT 1 FOR UPDATE`, r.FirmwareID).Scan(&latest)
+		exists := err == nil
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return nil, err
+		}
+		expected, ok := ExpectedNextStage(latest, exists)
+		if !ok {
+			return nil, fmt.Errorf("%w: firmware %d already has a stage-100 batch", ErrConflict, r.FirmwareID)
+		}
+		if r.Stage != expected {
+			s.M.Inc("batches_rejected_stage_order")
+			if exists {
+				return nil, fmt.Errorf("%w: expected stage %s (latest batch is %s), got %s", ErrConflict, expected, latest, r.Stage)
+			}
+			return nil, fmt.Errorf("%w: first batch of a firmware must be stage %s, got %s", ErrConflict, expected, r.Stage)
+		}
+	}
+
+	pct, err := StagePct(r.Stage)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrBadParam, err)
+	}
+
 	var id int64
 	err = tx.QueryRow(ctx,
-		`INSERT INTO iot_global.ota_batch(firmware_id,stage,status,fail_ratio_fuse,created_by,approved_by)
-		 VALUES ($1,$2,'running',$3,$4,$5) RETURNING id`,
-		r.FirmwareID, r.Stage, fuse, r.CreatedBy, nilIfEmpty(r.ApprovedBy)).Scan(&id)
+		`INSERT INTO iot_global.ota_batch(firmware_id,parent_batch_id,stage,status,fail_ratio_fuse,created_by,approved_by,policy)
+		 VALUES ($1,$2,$3,'running',$4,$5,$6,$7::jsonb) RETURNING id`,
+		r.FirmwareID, r.ParentBatchID, r.Stage, fuse, r.CreatedBy, nilIfEmpty(r.ApprovedBy), nilIfEmptyJSON(r.Policy)).Scan(&id)
 	if err != nil {
 		if sqlState(err) == "23514" {
 			s.M.Inc("batches_rejected_unapproved")
@@ -165,30 +243,18 @@ func (s *Service) CreateBatch(ctx context.Context, r BatchReq) (*Batch, error) {
 		return nil, fmt.Errorf("insert batch: %w", err)
 	}
 
-	// 圈选：同产品、固件版本不同（含 NULL），且未被同一固件的其它批次圈过（累进档不重复计数）。
-	rows, err := tx.Query(ctx,
-		`SELECT d.sn FROM iot_shard.device d
-		 WHERE d.product_key=$1 AND d.fw_version IS DISTINCT FROM $2
-		   AND NOT EXISTS (SELECT 1 FROM iot_shard.ota_device_task t
-		                   JOIN iot_global.ota_batch b ON b.id=t.batch_id
-		                   WHERE b.firmware_id=$3 AND t.sn=d.sn)
-		 ORDER BY d.sn`, productKey, version, r.FirmwareID)
-	if err != nil {
-		return nil, err
-	}
 	var targets []string
-	for rows.Next() {
-		var sn string
-		if err := rows.Scan(&sn); err != nil {
-			rows.Close()
+	if len(r.ExplicitSNs) > 0 {
+		// 显式 SN（组织子批次）：跳过 product_key + md5 抽样圈选，只保留 iot_shard.device 里真实存在的 SN，
+		// 不存在的忽略并计数（组织名单可能含已退役 / 未激活设备，不该让整批失败）。
+		targets, err = existingSNs(ctx, tx, r.ExplicitSNs)
+		if err != nil {
 			return nil, err
 		}
-		if InStage(sn, pct) {
-			targets = append(targets, sn)
+		if miss := len(dedupSNs(r.ExplicitSNs)) - len(targets); miss > 0 {
+			s.M.Add("explicit_sns_unknown", int64(miss))
 		}
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
+	} else if targets, err = s.sampleTargets(ctx, tx, productKey, version, r.FirmwareID, pct); err != nil {
 		return nil, err
 	}
 
@@ -208,16 +274,75 @@ func (s *Service) CreateBatch(ctx context.Context, r BatchReq) (*Batch, error) {
 	}
 	s.M.Inc("batches_created")
 	s.M.Add("tasks_targeted", int64(len(targets)))
-	slog.Info("ota batch created", "batch_id", id, "firmware_id", r.FirmwareID, "stage", r.Stage, "targets", len(targets))
+	slog.Info("ota batch created", "batch_id", id, "firmware_id", r.FirmwareID, "stage", r.Stage,
+		"parent_batch_id", r.ParentBatchID, "explicit", len(r.ExplicitSNs) > 0, "targets", len(targets))
 	return s.GetBatch(ctx, id)
+}
+
+// existingSNs 返回 sns 中真实存在于 iot_shard.device 的那些（去重、有序）。
+func existingSNs(ctx context.Context, tx pgx.Tx, sns []string) ([]string, error) {
+	rows, err := tx.Query(ctx, `SELECT sn FROM iot_shard.device WHERE sn = ANY($1) ORDER BY sn`, dedupSNs(sns))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var sn string
+		if err := rows.Scan(&sn); err != nil {
+			return nil, err
+		}
+		out = append(out, sn)
+	}
+	return out, rows.Err()
+}
+
+func dedupSNs(sns []string) []string {
+	seen := make(map[string]bool, len(sns))
+	out := make([]string, 0, len(sns))
+	for _, sn := range sns {
+		if sn == "" || seen[sn] {
+			continue
+		}
+		seen[sn] = true
+		out = append(out, sn)
+	}
+	return out
+}
+
+// sampleTargets 是平台批次的圈选：同产品、固件版本不同（含 NULL），且未被同一固件的其它批次圈过
+// （累进档不重复计数），再按 stage 百分比 md5(sn) 稳定抽样。
+func (s *Service) sampleTargets(ctx context.Context, tx pgx.Tx, productKey, version string, firmwareID int64, pct float64) ([]string, error) {
+	rows, err := tx.Query(ctx,
+		`SELECT d.sn FROM iot_shard.device d
+		 WHERE d.product_key=$1 AND d.fw_version IS DISTINCT FROM $2
+		   AND NOT EXISTS (SELECT 1 FROM iot_shard.ota_device_task t
+		                   JOIN iot_global.ota_batch b ON b.id=t.batch_id
+		                   WHERE b.firmware_id=$3 AND t.sn=d.sn)
+		 ORDER BY d.sn`, productKey, version, firmwareID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var targets []string
+	for rows.Next() {
+		var sn string
+		if err := rows.Scan(&sn); err != nil {
+			return nil, err
+		}
+		if InStage(sn, pct) {
+			targets = append(targets, sn)
+		}
+	}
+	return targets, rows.Err()
 }
 
 func (s *Service) GetBatch(ctx context.Context, id int64) (*Batch, error) {
 	var b Batch
 	err := s.DB.QueryRow(ctx,
-		`SELECT id,firmware_id,stage,status,target_total,ok_count,fail_count,fail_ratio_fuse::float8,created_by,approved_by,created_at,paused_at,fused_at
+		`SELECT id,firmware_id,parent_batch_id,stage,status,target_total,ok_count,fail_count,fail_ratio_fuse::float8,created_by,approved_by,created_at,paused_at,fused_at
 		 FROM iot_global.ota_batch WHERE id=$1`, id).Scan(
-		&b.ID, &b.FirmwareID, &b.Stage, &b.Status, &b.TargetTotal, &b.OkCount, &b.FailCount, &b.FailRatioFuse,
+		&b.ID, &b.FirmwareID, &b.ParentBatchID, &b.Stage, &b.Status, &b.TargetTotal, &b.OkCount, &b.FailCount, &b.FailRatioFuse,
 		&b.CreatedBy, &b.ApprovedBy, &b.CreatedAt, &b.PausedAt, &b.FusedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, fmt.Errorf("%w: batch %d", ErrNotFound, id)
@@ -369,7 +494,7 @@ func (s *Service) RunDispatcher(ctx context.Context, interval time.Duration) {
 // DispatchOnce 下发一轮；paused/fused 批次不会被选中，且每 chunk 复查批次状态。
 func (s *Service) DispatchOnce(ctx context.Context) (int, error) {
 	rows, err := s.DB.Query(ctx,
-		`SELECT b.id, f.full_url, f.full_size, f.sha256, f.signature
+		`SELECT b.id, f.full_url, f.full_size, f.sha256, f.signature, b.policy
 		 FROM iot_global.ota_batch b JOIN iot_global.firmware f ON f.id=b.firmware_id
 		 WHERE b.status='running' ORDER BY b.id`)
 	if err != nil {
@@ -380,19 +505,26 @@ func (s *Service) DispatchOnce(ctx context.Context) (int, error) {
 		url, sha string
 		size     int64
 		sig      string
+		policy   []byte
 	}
 	var batches []bt
 	for rows.Next() {
 		var b bt
-		if err := rows.Scan(&b.id, &b.url, &b.size, &b.sha, &b.sig); err != nil {
+		if err := rows.Scan(&b.id, &b.url, &b.size, &b.sha, &b.sig, &b.policy); err != nil {
 			rows.Close()
 			return 0, err
 		}
 		batches = append(batches, b)
 	}
 	rows.Close()
+	now := s.now()
 	total := 0
 	for _, b := range batches {
+		// 维护窗口：窗口外整批跳过（BL5 §08）。解析失败当作无窗口，不阻塞下发（建批时已校验过）。
+		if w, err := ParseWindow(b.policy); err == nil && !InWindow(w, now) {
+			s.M.Inc("window_skipped")
+			continue
+		}
 		for {
 			tasks, err := s.pendingTasks(ctx, b.id, 200)
 			if err != nil || len(tasks) == 0 {
@@ -482,38 +614,58 @@ func (s *Service) HandleProgress(ctx context.Context, env *envelope.Envelope) (P
 		s.M.Inc("progress_bad")
 		return ProgressDropped, nil
 	}
+	retryInc := 0
+	if p.Phase == TaskFailed {
+		retryInc = 1
+	}
+	return s.applyPhase(ctx, phaseChange{batchID: p.BatchID, sn: env.SN, phase: p.Phase, errorCode: p.ErrorCode, retryInc: retryInc, metricPrefix: "progress"})
+}
+
+// phaseChange 是一次任务状态变更请求：设备上报（HandleProgress）与 stale sweeper（SweepStale）共用同一事务逻辑。
+type phaseChange struct {
+	batchID   int64
+	sn        string
+	phase     string
+	errorCode string
+	retryInc  int
+	// onlyIfStaleFor > 0 时，仅当任务 updated_at 早于 now-onlyIfStaleFor 才变更（sweeper 的乐观守卫：
+	// SELECT 与 UPDATE 之间设备若刚上报过进度，则本轮放过）。
+	onlyIfStaleFor time.Duration
+	// metricPrefix：progress | stale，让两条来源的计数可分开观察。
+	metricPrefix string
+}
+
+// applyPhase 在一个事务里：更新任务状态（终态不可再迁）→ 终态时给批次计数 → running 批次评估熔断。
+func (s *Service) applyPhase(ctx context.Context, c phaseChange) (ProgressOutcome, error) {
 	tx, err := s.DB.Begin(ctx)
 	if err != nil {
 		return "", err
 	}
 	defer tx.Rollback(ctx)
 
-	retryInc := 0
-	if p.Phase == TaskFailed {
-		retryInc = 1
-	}
 	tag, err := tx.Exec(ctx,
 		`UPDATE iot_shard.ota_device_task
 		 SET status=$3, retry=retry+$4, error_code=$5, updated_at=now()
-		 WHERE batch_id=$1 AND sn=$2 AND NOT (status = ANY($6))`,
-		p.BatchID, env.SN, p.Phase, retryInc, nilIfEmpty(p.ErrorCode), TerminalStates())
+		 WHERE batch_id=$1 AND sn=$2 AND NOT (status = ANY($6))
+		   AND ($7::float8 <= 0 OR updated_at < now() - make_interval(secs => $7))`,
+		c.batchID, c.sn, c.phase, c.retryInc, nilIfEmpty(c.errorCode), TerminalStates(), c.onlyIfStaleFor.Seconds())
 	if err != nil {
 		return "", fmt.Errorf("update task: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
-		s.M.Inc("progress_ignored")
+		s.M.Inc(c.metricPrefix + "_ignored")
 		return ProgressIgnored, tx.Commit(ctx)
 	}
-	if !IsTerminal(p.Phase) {
-		s.M.Inc("progress_updated")
+	if !IsTerminal(c.phase) {
+		s.M.Inc(c.metricPrefix + "_updated")
 		return ProgressUpdated, tx.Commit(ctx)
 	}
 
 	okInc, failInc := 0, 0
-	if p.Phase == TaskSuccess {
+	if c.phase == TaskSuccess {
 		okInc = 1
 	} else {
-		failInc = 1
+		failInc = 1 // failed 与 rolled_back 都计失败
 	}
 	// 计数与任务状态同一事务；paused 期间仍计数（设备已在升级），但只有 running 才评估熔断。
 	var ok, fail int
@@ -522,19 +674,19 @@ func (s *Service) HandleProgress(ctx context.Context, env *envelope.Envelope) (P
 	err = tx.QueryRow(ctx,
 		`UPDATE iot_global.ota_batch SET ok_count=ok_count+$2, fail_count=fail_count+$3
 		 WHERE id=$1 AND status IN ('running','paused')
-		 RETURNING ok_count, fail_count, fail_ratio_fuse::float8, status`, p.BatchID, okInc, failInc).
+		 RETURNING ok_count, fail_count, fail_ratio_fuse::float8, status`, c.batchID, okInc, failInc).
 		Scan(&ok, &fail, &threshold, &status)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// 批次已 fused/completed：任务状态仍落地，但不再计数
-		s.M.Inc("progress_terminal_uncounted")
+		s.M.Inc(c.metricPrefix + "_terminal_uncounted")
 		return ProgressTerminal, tx.Commit(ctx)
 	}
 	if err != nil {
 		return "", fmt.Errorf("update batch counts: %w", err)
 	}
 	outcome := ProgressTerminal
-	if status == BatchRunning && ShouldFuse(ok, fail, threshold, s.MinSamples) {
-		tag, err := tx.Exec(ctx, `UPDATE iot_global.ota_batch SET status='fused', fused_at=now() WHERE id=$1 AND status='running'`, p.BatchID)
+	if status == BatchRunning && ShouldFuseAbs(ok, fail, threshold, s.MinSamples, s.MinAbsFail) {
+		tag, err := tx.Exec(ctx, `UPDATE iot_global.ota_batch SET status='fused', fused_at=now() WHERE id=$1 AND status='running'`, c.batchID)
 		if err != nil {
 			return "", fmt.Errorf("fuse batch: %w", err)
 		}
@@ -545,11 +697,12 @@ func (s *Service) HandleProgress(ctx context.Context, env *envelope.Envelope) (P
 	if err := tx.Commit(ctx); err != nil {
 		return "", err
 	}
-	s.M.Inc("progress_terminal")
+	s.M.Inc(c.metricPrefix + "_terminal")
 	if outcome == ProgressFused {
 		s.M.Inc("batches_fused")
-		slog.Error("OTA BATCH FUSED (alert): fail ratio above threshold, manual resume required",
-			"batch_id", p.BatchID, "ok", ok, "fail", fail, "fail_ratio", FailRatio(ok, fail), "threshold", threshold)
+		slog.Error("OTA BATCH FUSED (alert): fail ratio/abs above threshold, manual resume required",
+			"batch_id", c.batchID, "ok", ok, "fail", fail, "fail_ratio", FailRatio(ok, fail), "threshold", threshold,
+			"min_abs_fail", s.MinAbsFail, "source", c.metricPrefix)
 	}
 	return outcome, nil
 }
@@ -568,6 +721,15 @@ func nilIfEmpty(s string) *string {
 	if s == "" {
 		return nil
 	}
+	return &s
+}
+
+// nilIfEmptyJSON 把空 policy 写成 SQL NULL（而不是字符串 ""，那会让 ::jsonb 转换报错）。
+func nilIfEmptyJSON(raw json.RawMessage) *string {
+	if len(raw) == 0 {
+		return nil
+	}
+	s := string(raw)
 	return &s
 }
 

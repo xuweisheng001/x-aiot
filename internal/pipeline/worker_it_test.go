@@ -34,6 +34,8 @@ func TestWorkerEndToEnd(t *testing.T) {
 	sn := fmt.Sprintf("ITSN%d", time.Now().UnixNano()%1_000_000)
 	cfg := ConsumerConfig(cell)
 	cfg.Durable = "pipeline-it-99"
+	// 只消费本次发布的消息：IOT_UP 保留 72h，上一次 IT 留在 cell 99 的消息会让计数翻倍
+	cfg.DeliverPolicy = jetstream.DeliverNewPolicy
 	cons, err := js.CreateOrUpdateConsumer(ctx, envelope.StreamUp, cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +49,7 @@ func TestWorkerEndToEnd(t *testing.T) {
 		}
 	}
 	base := time.Now().UnixMilli()
-	pub(envelope.KindTelemetry, 1, fmt.Sprintf(`{"seq":1,"ts":%d,"work_state":1,"progress":10}`, base))
+	pub(envelope.KindTelemetry, 1, fmt.Sprintf(`{"seq":1,"ts":%d,"work_state":1,"progress":10,"module_model":"LM40","job_feedback_optin":true}`, base)) // v1.1 属性透传
 	pub(envelope.KindTelemetry, 2, fmt.Sprintf(`{"seq":2,"ts":%d,"work_state":2,"progress":20}`, base+1))
 	pub(envelope.KindTelemetry, 2, fmt.Sprintf(`{"seq":2,"ts":%d,"work_state":2,"progress":20}`, base+1)) // dup
 	pub(envelope.KindEvent, 3, fmt.Sprintf(`{"seq":3,"ts":%d,"code":"FLAME_DETECTED","msg":"x"}`, base+2))
@@ -80,6 +82,10 @@ func TestWorkerEndToEnd(t *testing.T) {
 	rep, err := shadow.Read(ctx, rdb, sn)
 	if err != nil || rep["seq"] != "2" || rep["progress"] != "20" || rep["last_event_code"] != "FLAME_DETECTED" {
 		t.Fatalf("shadow=%v err=%v", rep, err)
+	}
+	// v1.1：属性只在 seq=1 帧携带，批内最新是 seq=2，仍必须进影子
+	if rep["module_model"] != "LM40" || rep["job_feedback_optin"] != "1" && rep["job_feedback_optin"] != "true" {
+		t.Fatalf("v1.1 extras missing in shadow: %v", rep)
 	}
 	if v, err := rdb.Get(ctx, "cmdres:it-cmd-1").Result(); err != nil || v == "" {
 		t.Fatalf("cmdres: %q %v", v, err)

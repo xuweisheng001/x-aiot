@@ -855,11 +855,11 @@ DDL 全文见 sql/global.sql、sql/shard.sql、sql/tdengine.sql、sql/cf001.sql�
 | PG | 单实例三 schema | 全局库主从 + 分片库按 SN 哈希 |
 | TDengine 写入 | REST taosAdapter | 原生连接（预期 2 到 4 倍） |
 | 推送 / 短信 | 日志模拟 | APNs / FCM 高优先级通道，海外 SMS 供应商 |
-| CF001 密钥 | 一对 RSA-2048 兼加密与签名，不校验 nonce | 两对，签名私钥进 HSM，nonce 5 min 窗口 + Redis 去重 |
+| CF001 密钥 | 一对 RSA-2048 兼加密与签名；nonce 5 min 窗口 + Redis 去重已实现，密钥缺失默认生成临时密钥 | 两对，签名私钥进 HSM；IOT_CF001_REQUIRE_KEY=true 密钥缺失拒绝启动 |
 | 服务间调用 | 无鉴权 | mTLS 或签名 token |
 | 区域 | 单区 | 三区，bootstrap 按 region 调度 |
 | 摄像头快照 | 未实现 | RRPC snapshot + 预签名 URL |
-| 看板 | /metrics 文本计数 | Prometheus + Grafana 四块看板 |
+| 看板 | /metrics 文本计数（含 alarm 对账、OTA stale、pipeline DLQ、auth fail-open 计数） | Prometheus + Grafana 四块看板 |
 | cmd_audit 分区 | 脚本预建两月 | 定时任务滚动创建 / DROP 180 d 前 |
 
 ### 18.3 P0 之后的接入顺序

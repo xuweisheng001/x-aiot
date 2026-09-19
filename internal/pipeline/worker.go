@@ -2,9 +2,12 @@ package pipeline
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,11 +37,27 @@ const (
 	MShadowErr     = "shadow_err"
 	MAckErr        = "ack_err"
 	MEnrichMissing = "enrich_missing"
+	MDLQ           = "dlq"             // 毒消息成功落死信
+	MDLQPublishErr = "dlq_publish_err" // 落死信失败（Nak 重投）
 )
 
 // AllMetricNames 用于预注册，保证 /metrics 输出稳定。
 var AllMetricNames = []string{MConsumed, MPoison, MDup, MDedupeRedis, MBatches, MRowsWritten, MNak, MLag,
-	MEvents, MCmdAcks, MOTAAcked, MEnrichErr, MShadowErr, MAckErr, MEnrichMissing}
+	MEvents, MCmdAcks, MOTAAcked, MEnrichErr, MShadowErr, MAckErr, MEnrichMissing, MDLQ, MDLQPublishErr}
+
+// Publisher 是死信发布依赖的 JetStream 子集（jetstream.JetStream 满足）。
+type Publisher interface {
+	Publish(ctx context.Context, subject string, payload []byte, opts ...jetstream.PublishOpt) (*jetstream.PubAck, error)
+}
+
+// DLQRecord 是落到 IOT_DLQ 的包装：原始字节 base64 + 来源 subject + 解析错误 + 时间，便于排查与重放。
+type DLQRecord struct {
+	Subject string `json:"subject"`
+	Cell    int    `json:"cell"`
+	Error   string `json:"error"`
+	Ts      int64  `json:"ts"` // 毫秒
+	DataB64 string `json:"data_b64"`
+}
 
 // TDWriter 是 Worker 依赖的 TDengine 子集（*tdengine.Client 满足）。
 type TDWriter interface {
@@ -99,9 +118,10 @@ func ConsumerConfig(cell int) jetstream.ConsumerConfig {
 func ConsumerName(cell int) string { return "pipeline-" + strconv.Itoa(cell) }
 
 type item struct {
-	msg jetstream.Msg
-	env *envelope.Envelope
-	row tdengine.TelemetryRow
+	msg    jetstream.Msg
+	env    *envelope.Envelope
+	row    tdengine.TelemetryRow
+	extras map[string]any // v1.1 未建模标量属性（module_model 等）
 }
 
 // Worker 消费一个 cell 的 durable consumer，四步处理 + 攒批刷写。
@@ -112,6 +132,8 @@ type Worker struct {
 	td   TDWriter
 	m    *Metrics
 	cfg  Config
+	// DLQ 非 nil 时解析失败的消息发布到 envelope.SubjectDLQ 后再 Ack；nil 退回"直接 Ack 丢弃"的旧行为。
+	DLQ Publisher
 }
 
 func NewWorker(cell int, cons jetstream.Consumer, rdb *redis.Client, td TDWriter, m *Metrics, cfg Config) *Worker {
@@ -188,7 +210,7 @@ func (w *Worker) process(msg jetstream.Msg, in chan<- item) {
 	if err != nil {
 		w.m.Inc(MPoison)
 		slog.Warn("pipeline poison", "cell", w.cell, "subject", msg.Subject(), "err", err)
-		w.ack(msg)
+		w.handlePoison(msg, err)
 		return
 	}
 	env := p.Env
@@ -225,7 +247,7 @@ func (w *Worker) process(msg jetstream.Msg, in chan<- item) {
 
 	switch env.Kind {
 	case envelope.KindTelemetry:
-		in <- item{msg: msg, env: env, row: ToTelemetryRow(env, dev, p.Telemetry)}
+		in <- item{msg: msg, env: env, row: ToTelemetryRow(env, dev, p.Telemetry), extras: p.Extras}
 	case envelope.KindEvent:
 		w.handleEvent(ctx, msg, env, dev, p.Event)
 	case envelope.KindCmdAck:
@@ -233,10 +255,49 @@ func (w *Worker) process(msg jetstream.Msg, in chan<- item) {
 	}
 }
 
+// handlePoison：有 DLQ 则先落死信（成功 Ack，失败 Nak 重投）；无 DLQ 直接 Ack 丢弃。
+func (w *Worker) handlePoison(msg jetstream.Msg, perr error) {
+	if w.DLQ == nil {
+		w.ack(msg)
+		return
+	}
+	ctx, cancel := w.opCtx()
+	defer cancel()
+	rec := DLQRecord{Subject: msg.Subject(), Cell: w.cell, Error: perr.Error(), Ts: time.Now().UnixMilli(),
+		DataB64: base64.StdEncoding.EncodeToString(msg.Data())}
+	body, _ := json.Marshal(rec)
+	if _, err := w.DLQ.Publish(ctx, envelope.SubjectDLQ(KindFromSubject(msg.Subject())), body); err != nil {
+		w.m.Inc(MDLQPublishErr)
+		slog.Error("pipeline dlq publish", "cell", w.cell, "subject", msg.Subject(), "err", err)
+		var nerr error
+		if w.cfg.NakDelay > 0 {
+			nerr = msg.NakWithDelay(w.cfg.NakDelay)
+		} else {
+			nerr = msg.Nak()
+		}
+		if nerr != nil {
+			w.m.Inc(MAckErr)
+		}
+		w.m.Inc(MNak)
+		return
+	}
+	w.m.Inc(MDLQ)
+	w.ack(msg)
+}
+
+// KindFromSubject 从 "iot.up.<kind>.<cell>" 取 kind；格式不符返回空。
+func KindFromSubject(subject string) envelope.Kind {
+	parts := strings.Split(subject, ".")
+	if len(parts) >= 3 && parts[0] == "iot" && parts[1] == "up" {
+		return envelope.Kind(parts[2])
+	}
+	return ""
+}
+
 func (w *Worker) handleEvent(ctx context.Context, msg jetstream.Msg, env *envelope.Envelope, dev DeviceInfo, e *EventPayload) {
 	fctx, cancel := context.WithTimeout(context.Background(), w.cfg.FlushTimeout)
 	defer cancel()
-	row := tdengine.EventRow{SN: env.SN, PK: dev.PK, Ts: e.Ts, Seq: e.Seq, Code: e.Code, Msg: e.Msg}
+	row := ToEventRow(env, dev, e)
 	if err := w.td.InsertEvents(fctx, []tdengine.EventRow{row}); err != nil {
 		slog.Error("pipeline event insert", "cell", w.cell, "sn", env.SN, "err", err)
 		w.nakAll([]item{{msg: msg, env: env}})
@@ -307,8 +368,16 @@ func (w *Worker) flush(batch []item) {
 	ctx, cancel := context.WithTimeout(context.Background(), w.cfg.FlushTimeout)
 	defer cancel()
 	rows := make([]tdengine.TelemetryRow, len(batch))
+	// 未建模属性按 SN 在批内合并（后到覆盖先到）：属性只随上线第一帧/变更帧上报，不能因为它不是批内最新一行就丢掉。
+	extras := map[string]map[string]any{}
 	for i, it := range batch {
 		rows[i] = it.row
+		for k, v := range it.extras {
+			if extras[it.row.SN] == nil {
+				extras[it.row.SN] = map[string]any{}
+			}
+			extras[it.row.SN][k] = v
+		}
 	}
 	if err := w.td.BatchInsert(ctx, rows); err != nil {
 		slog.Error("pipeline batch insert", "cell", w.cell, "rows", len(rows), "err", err)
@@ -317,7 +386,7 @@ func (w *Worker) flush(batch []item) {
 	}
 	pipe := w.rdb.Pipeline()
 	for _, r := range LatestPerSN(rows) {
-		shadow.WriteReported(ctx, pipe, r.SN, ShadowFields(r))
+		shadow.WriteReported(ctx, pipe, r.SN, ShadowFieldsWithExtras(r, extras[r.SN]))
 	}
 	if _, err := pipe.Exec(ctx); err != nil {
 		w.m.Inc(MShadowErr)

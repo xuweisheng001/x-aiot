@@ -73,16 +73,26 @@ type TelemetryRow struct {
 	Progress           int
 }
 
-// EventRow 对应超级表 iot.events。
+// EventRow 对应超级表 iot.events。v1.1 四个任务字段为空串时写 NULL（列存在但未上报 / 设备未 opt-in）。
 type EventRow struct {
 	SN, PK    string
 	Ts, Seq   int64
 	Code, Msg string
+
+	JobID, MaterialID, ParamProfileID, ParamsHash string
 }
 
 const maxSQLBytes = 900 * 1024
 
 func q(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + "'" }
+
+// qn 与 q 相同，但空串写 NULL（可选列）。
+func qn(s string) string {
+	if s == "" {
+		return "NULL"
+	}
+	return q(s)
+}
 
 // BuildTelemetryInserts 按 SN 分组生成多表多行 INSERT，超过 maxSQLBytes 自动切分。
 // 纯函数，便于单测；BatchInsert 调它。
@@ -131,8 +141,9 @@ func BuildEventInserts(rows []EventRow) []string {
 	var sb strings.Builder
 	sb.WriteString("INSERT INTO ")
 	for _, r := range rows {
-		fmt.Fprintf(&sb, "iot.e_%s USING iot.events TAGS (%s,%s) VALUES (%d,%d,%s,%s) ",
-			sanitize(r.SN), q(r.SN), q(r.PK), r.Ts, r.Seq, q(r.Code), q(r.Msg))
+		fmt.Fprintf(&sb, "iot.e_%s USING iot.events TAGS (%s,%s) VALUES (%d,%d,%s,%s,%s,%s,%s,%s) ",
+			sanitize(r.SN), q(r.SN), q(r.PK), r.Ts, r.Seq, q(r.Code), q(r.Msg),
+			qn(r.JobID), qn(r.MaterialID), qn(r.ParamProfileID), qn(r.ParamsHash))
 	}
 	return []string{sb.String()}
 }
@@ -168,6 +179,18 @@ func (c *Client) InsertEvents(ctx context.Context, rows []EventRow) error {
 	return nil
 }
 
+// SchemaErrorIsBenign 判定 DDL 错误是否为「已存在」类可忽略错误（纯函数）。
+// 实测 TDengine 3.3.5 taosAdapter 文案：
+//   - 重复建库/表：desc 含 "already exists"
+//   - ALTER STABLE ADD COLUMN 重复列：code 875, desc "Column already exists"
+func SchemaErrorIsBenign(err error) bool {
+	if err == nil {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "already exists") || strings.Contains(msg, "code 875")
+}
+
 // EnsureSchema 幂等执行 sql/tdengine.sql 的语句（调用方按 ; 切分传入）。
 func (c *Client) EnsureSchema(ctx context.Context, stmts []string) error {
 	for _, s := range stmts {
@@ -181,7 +204,7 @@ func (c *Client) EnsureSchema(ctx context.Context, stmts []string) error {
 		}
 		err := c.Exec(ctx, s)
 		c.DB = db
-		if err != nil && !strings.Contains(err.Error(), "already exists") {
+		if !SchemaErrorIsBenign(err) {
 			return err
 		}
 	}
@@ -203,4 +226,67 @@ func (c *Client) CountRows(ctx context.Context, stable string) (int64, error) {
 	default:
 		return 0, fmt.Errorf("unexpected count type %T", v)
 	}
+}
+
+// Telemetry1hRequiredCols 是 BL3 健康度需要的 telemetry_1h 列（流目标表）；缺任一列说明是老流，需重建。
+var Telemetry1hRequiredCols = []string{"avg_power", "share_low", "share_mid", "share_high"}
+
+// StreamNeedsRebuild 纯函数：existing 为空（表不存在）不需重建（CREATE STREAM 会建）；否则 required 有缺即需重建。
+func StreamNeedsRebuild(existing, required []string) bool {
+	if len(existing) == 0 {
+		return false
+	}
+	have := map[string]bool{}
+	for _, c := range existing {
+		have[strings.ToLower(strings.TrimSpace(c))] = true
+	}
+	for _, r := range required {
+		if !have[strings.ToLower(r)] {
+			return true
+		}
+	}
+	return false
+}
+
+// Columns 用 DESCRIBE 取表的列名（含标签列）；表不存在返回 nil, nil。
+func (c *Client) Columns(ctx context.Context, table string) ([]string, error) {
+	r, err := c.Query(ctx, "DESCRIBE iot."+table)
+	if err != nil {
+		msg := strings.ToLower(err.Error())
+		if strings.Contains(msg, "not exist") || strings.Contains(msg, "does not exist") {
+			return nil, nil
+		}
+		return nil, err
+	}
+	out := make([]string, 0, len(r.Data))
+	for _, row := range r.Data {
+		if len(row) > 0 {
+			if s, ok := row[0].(string); ok {
+				out = append(out, s)
+			}
+		}
+	}
+	return out, nil
+}
+
+// RebuildStreamIfMissing：流目标表 table 缺 required 列时 DROP STREAM stream 与 DROP STABLE iot.table，
+// 让随后的 EnsureSchema 用新定义重建。只动流与其目标表，不碰 telemetry 超级表。返回是否执行了重建。
+func (c *Client) RebuildStreamIfMissing(ctx context.Context, stream, table string, required []string) (bool, error) {
+	cols, err := c.Columns(ctx, table)
+	if err != nil {
+		return false, fmt.Errorf("describe %s: %w", table, err)
+	}
+	if !StreamNeedsRebuild(cols, required) {
+		return false, nil
+	}
+	if err := c.Exec(ctx, "DROP STREAM IF EXISTS "+stream); err != nil && !SchemaErrorIsBenign(err) {
+		return false, fmt.Errorf("drop stream %s: %w", stream, err)
+	}
+	if err := c.Exec(ctx, "DROP STABLE IF EXISTS iot."+table); err != nil {
+		// 目标表可能是普通表（老版本流）
+		if err2 := c.Exec(ctx, "DROP TABLE IF EXISTS iot."+table); err2 != nil {
+			return false, fmt.Errorf("drop %s: %w", table, err)
+		}
+	}
+	return true, nil
 }

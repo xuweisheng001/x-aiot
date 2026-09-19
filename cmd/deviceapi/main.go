@@ -58,6 +58,8 @@ func main() {
 		TD:    td,
 		MQTT:  &deviceapi.PahoPublisher{Client: cli, Timeout: 5 * time.Second},
 		JS:    js,
+		// BL6：support / agent 来源的指令授权直查 PG support_grant
+		Grants: &deviceapi.PGGrantChecker{Q: pool},
 	}
 
 	var wg sync.WaitGroup
@@ -67,6 +69,12 @@ func main() {
 		if err := deviceapi.RunAuditConsumer(ctx, js, srv.Store); err != nil {
 			slog.Error("audit consumer", "err", err)
 		}
+	}()
+	// cmd_audit 分区滚动：启动即建，之后每 24h 一次；失败只记 ERROR（INC-24）。
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		deviceapi.RunPartitionKeeper(ctx, srv.Store, config.EnvInt("IOT_AUDIT_PARTITION_MONTHS", 3), 24*time.Hour)
 	}()
 
 	addr := config.Env("IOT_HTTP_ADDR", ":8083")

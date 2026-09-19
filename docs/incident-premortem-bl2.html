@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --ink: #1c2733;
+  --muted: #56687a;
+  --accent: #0b7285;
+  --accent-ink: #085d6e;
+  --accent-soft: rgba(11, 114, 133, 0.08);
+  --warn: #b4540a;
+  --warn-soft: rgba(180, 84, 10, 0.07);
+  --line: #dbe3e9;
+  --code-bg: #eef3f5;
+  --code-ink: #14424c;
+  --chip-ink: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161b;
+    --surface: #171f26;
+    --ink: #e3ebf0;
+    --muted: #93a5b2;
+    --accent: #4fc0d3;
+    --accent-ink: #6fd0e0;
+    --accent-soft: rgba(79, 192, 211, 0.1);
+    --warn: #e8964e;
+    --warn-soft: rgba(232, 150, 78, 0.09);
+    --line: #2a3640;
+    --code-bg: #1d2830;
+    --code-ink: #a9d8e2;
+    --chip-ink: #0e1418;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10161b;
+  --surface: #171f26;
+  --ink: #e3ebf0;
+  --muted: #93a5b2;
+  --accent: #4fc0d3;
+  --accent-ink: #6fd0e0;
+  --accent-soft: rgba(79, 192, 211, 0.1);
+  --warn: #e8964e;
+  --warn-soft: rgba(232, 150, 78, 0.09);
+  --line: #2a3640;
+  --code-bg: #1d2830;
+  --code-ink: #a9d8e2;
+  --chip-ink: #0e1418;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  line-height: 1.85;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 5rem; }
+header { margin-bottom: 2.5rem; }
+.kicker {
+  font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin: 0 0 0.8rem;
+}
+h1 {
+  font-family: "Noto Serif SC", serif; font-weight: 900;
+  font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.25;
+  margin: 0 0 1rem; text-wrap: balance;
+}
+.lede { color: var(--muted); margin: 0; max-width: 40rem; }
+nav.toc {
+  margin: 2.2rem 0 0; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); padding: 1.1rem 1.3rem;
+}
+nav.toc p { margin: 0 0 0.5rem; font-size: 0.78rem; letter-spacing: 0.14em; color: var(--muted); font-weight: 700; }
+nav.toc ol {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.15rem 1.5rem;
+}
+nav.toc a { color: var(--ink); text-decoration: none; font-size: 0.93rem; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent-ink); }
+nav.toc li::before { content: counter(list-item, decimal-leading-zero) " "; color: var(--accent); font-family: "JetBrains Mono", monospace; font-size: 0.8rem; }
+section { margin-top: 3.5rem; }
+h2 {
+  font-family: "Noto Serif SC", serif; font-weight: 700;
+  font-size: 1.5rem; line-height: 1.4; margin: 0 0 0.4rem;
+  padding-top: 1.2rem; border-top: 2px solid var(--accent); text-wrap: balance;
+}
+h2 .no { font-family: "JetBrains Mono", monospace; font-size: 0.9rem; color: var(--accent); margin-right: 0.6em; font-weight: 600; }
+h3 {
+  font-weight: 700; font-size: 1.08rem; margin: 2rem 0 0.5rem; text-wrap: balance;
+}
+h3::before { content: "▸ "; color: var(--accent); }
+p { margin: 0.6rem 0; }
+.why { color: var(--muted); font-size: 0.92rem; margin-top: -0.1rem; }
+ul, ol { margin: 0.5rem 0 0.9rem; padding-left: 1.4rem; }
+li { margin: 0.3rem 0; }
+li::marker { color: var(--accent); }
+strong { font-weight: 700; }
+code {
+  font-family: "JetBrains Mono", "Menlo", monospace; font-size: 0.85em;
+  background: var(--code-bg); color: var(--code-ink);
+  padding: 0.1em 0.4em; border-radius: 4px;
+}
+pre {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0.8rem 0 1.2rem;
+}
+pre code { background: none; padding: 0; font-size: 0.84rem; line-height: 1.7; }
+.tablebox { overflow-x: auto; margin: 0.8rem 0 1.2rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.6; }
+th, td { text-align: left; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.8rem; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+.fix { border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0; }
+.fix b { color: var(--warn); }
+.callout {
+  border-left: 3px solid var(--accent); background: var(--accent-soft);
+  border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0;
+}
+.callout b { color: var(--accent-ink); }
+.f {
+  font-family: "JetBrains Mono", monospace; font-size: 0.68rem; font-weight: 600;
+  padding: 0.1em 0.55em; border-radius: 99px; white-space: nowrap;
+  vertical-align: 0.15em; margin-left: 0.5em; letter-spacing: 0.02em;
+}
+.f3 { background: var(--accent); color: var(--chip-ink); }
+.f2 { background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent); }
+.f1 { color: var(--muted); border: 1px solid var(--line); background: var(--surface); }
+td .f { margin-left: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.8rem 1.4rem; margin: 0.8rem 0 0; padding: 0; list-style: none; font-size: 0.88rem; color: var(--muted); }
+.legend li { margin: 0; }
+.qa { margin: 1.2rem 0; }
+.iq {
+  background: var(--accent-soft); border-radius: 10px 10px 10px 3px;
+  padding: 0.65rem 1rem; margin: 0.9rem 0 0.5rem; max-width: 92%;
+}
+.iq b { color: var(--accent-ink); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.ca {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px 10px 3px 10px;
+  padding: 0.65rem 1rem; margin: 0.5rem 0 0.5rem auto; max-width: 92%;
+}
+.ca b { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.note { color: var(--muted); font-size: 0.88rem; font-style: italic; margin: 0.4rem 0 1.1rem; padding-left: 1rem; border-left: 2px dashed var(--line); }
+footer { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+.meta{display:grid;grid-template-columns:6em 1fr;gap:.2rem 1rem;font-size:.92rem;border:1px solid var(--line);border-radius:8px;padding:.9rem 1.1rem;background:var(--surface);margin:1.2rem 0}
+.meta dt{color:var(--muted);font-weight:700}.meta dd{margin:0}
+h3 code{font-size:.8rem;vertical-align:.1em;margin-right:.2em}
+b.k{display:inline-block;color:var(--accent-ink);font-size:.78rem;letter-spacing:.1em;font-weight:700;margin-right:.5em;min-width:4.5em}
+td code{white-space:nowrap}
+section{margin-top:3rem}
+</style>
+</head>
+<body>
+<title>BL2 事故预推演</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<div class="wrap">
+<header>
+  <p class="kicker">Incident Pre-mortem · BL2 配件与安全生态</p>
+  <h1>线上事故预推演与处置方案</h1>
+  <p class="lede">配件作为第二类设备接入同一管道后，沿配对、联动、本地兜底、滤芯寿命、灭火留痕五条线逐段推演最可能的线上事故，给出触发、传播、检测信号、止血、恢复、根治与演练。</p>
+  <ul class="legend">
+    <li><span class="f f3">S1</span> 安全链路失效 / 刷砖 / 停线，15 分钟内止血</li>
+    <li><span class="f f2">S2</span> 核心链路 ≥ 10% 设备不可用</li>
+    <li><span class="f f1">S3 / S4</span> 单链路降级 / 内部指标异常</li>
+  </ul>
+  <dl class="meta">
+    <dt>文档版本</dt><dd>v0.1 · 2026-09-18</dd>
+    <dt>目的</dt><dd>BL2 上线前沿配对、云端联动、本地兜底、安全事件、滤芯寿命、配件 OTA 六条线推演最可能的线上事故，每条给触发、传播、检测信号、止血、恢复、根治、演练</dd>
+    <dt>与其它预推演的关系</dt><dd>docs/incident-premortem-bl1.md 的 27 条对配件作为设备同样全部适用（接入、数据、告警、OTA）；docs/incident-premortem-bl4.md 的入口与授权类事故对配对界面适用。本文只写 BL2 新增的 20 条</dd>
+    <dt>编号</dt><dd>INC-2-xx</dd>
+  </dl>
+  <nav class="toc">
+    <p>目录</p>
+    <ol>
+      <li><a href="#1-事故清单总览">事故清单总览</a></li>
+      <li><a href="#2-云端联动">云端联动</a></li>
+      <li><a href="#3-配对">配对</a></li>
+      <li><a href="#4-安全事件">安全事件</a></li>
+      <li><a href="#5-本地兜底">本地兜底</a></li>
+      <li><a href="#6-滤芯寿命">滤芯寿命</a></li>
+      <li><a href="#7-ota-与数据">OTA 与数据</a></li>
+      <li><a href="#8-演练计划">演练计划</a></li>
+      <li><a href="#9-迭代-1-出口前必须补齐的能力">迭代 1 出口前必须补齐的能力</a></li>
+    </ol>
+  </nav>
+</header>
+
+<p><strong>BL2 事故的三个特征</strong></p>
+<ol>
+<li><strong>物理后果</strong>。净化器该开没开是烟雾，该关没关是耗材；灭火器事件漏报是安全事故。事故不止是数据错。</li>
+<li><strong>两条路径互为备份，也互为干扰</strong>。云端联动与本地兜底并存，多数事故形态是「一条路径错了，另一条没能兜住」或「两条路径打架」。</li>
+<li><strong>配对是新的授权边界</strong>。配对错了，一台主机能控制别人的净化器。</li>
+</ol>
+
+<h2 id="1-事故清单总览"><span class="no">01</span>事故清单总览</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>事故</th>
+<th>线</th>
+<th>级别</th>
+<th>第一检测信号</th>
+<th>止血时限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#inc-2-01-规则引擎失效"><code>INC-2-01</code></a></td>
+<td>规则引擎挂或 lag，云端联动全部失效</td>
+<td>联动</td>
+<td><span class="f f1">S3</span></td>
+<td>consumer pending 增长；trigger_source=local 比例升</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-2-02-联动延迟超-3-s"><code>INC-2-02</code></a></td>
+<td>联动延迟超 3 s：Redis 配对缓存 miss 回源慢或 deviceapi 慢</td>
+<td>联动</td>
+<td><span class="f f1">S3</span></td>
+<td>延迟 P99 &gt; 3 s</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-2-03-云端建议关被错误采纳-s1"><code>INC-2-03</code></a></td>
+<td>云端建议关被固件错误采纳，作业中净化器停转</td>
+<td>联动</td>
+<td><span class="f f3">S1</span></td>
+<td>主机 work_state=2 期间净化器 power_on=false 的对账</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-2-04-延时关闭定时器丢失"><code>INC-2-04</code></a></td>
+<td>延时关闭定时器丢失，净化器长开耗滤芯</td>
+<td>联动</td>
+<td><span class="f f1">S3</span></td>
+<td>主机空闲 &gt; off_delay 且净化器仍开的设备数</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-2-05-联动风暴"><code>INC-2-05</code></a></td>
+<td>联动风暴：主机 work_state 抖动导致每秒下发 desired</td>
+<td>联动</td>
+<td><span class="f f2">S2</span></td>
+<td>linkage_triggered 速率；deviceapi desired 写入量</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-2-06-配对错误-s1"><code>INC-2-06</code></a></td>
+<td>配对错误：净化器被配到别人的主机</td>
+<td>配对</td>
+<td><span class="f f3">S1</span></td>
+<td>配对双方 owner 不一致的对账</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-2-07-灭火事件未推送或未关联主机-s1"><code>INC-2-07</code></a></td>
+<td>灭火事件未推送或未关联主机</td>
+<td>安全</td>
+<td><span class="f f3">S1</span></td>
+<td>BL1 INC-10 对账探针；alarm_context 缺失</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-2-08-烟雾误报风暴"><code>INC-2-08</code></a></td>
+<td>烟雾误报风暴：切割烟雾触发 SMOKE_HIGH</td>
+<td>安全</td>
+<td><span class="f f2">S2</span></td>
+<td>同码同机型每分钟 &gt; 100</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-2-09-灭火事件误触发主机-stop"><code>INC-2-09</code></a></td>
+<td>灭火事件误触发主机 stop 打断正常作业</td>
+<td>安全</td>
+<td><span class="f f2">S2</span></td>
+<td>cmd_audit operator=accessory-svc 的 stop 数</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-2-10-本地兜底失效-s1"><code>INC-2-10</code></a></td>
+<td>本地兜底失效：作业信号未广播或净化器未响应，云也不可用时净化器不开</td>
+<td>兜底</td>
+<td><span class="f f3">S1</span></td>
+<td>trigger_source 分布中 local 归零；断网台架</td>
+<td>固件版本</td>
+</tr>
+<tr>
+<td><a href="#inc-2-11-本地信号被邻居触发"><code>INC-2-11</code></a></td>
+<td>本地信号被邻居主机触发</td>
+<td>兜底</td>
+<td><span class="f f1">S3</span></td>
+<td>未配对主机附近的净化器 local 启动</td>
+<td>固件版本</td>
+</tr>
+<tr>
+<td><a href="#inc-2-12-解绑后配对未解除"><code>INC-2-12</code></a></td>
+<td>主机解绑后配对未解除，原 owner 仍控制净化器</td>
+<td>配对</td>
+<td><span class="f f2">S2</span></td>
+<td>unbound_at 之后 linkage_audit 仍有该 host</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-2-13-材料档位映射发布错误"><code>INC-2-13</code></a></td>
+<td>材料档位映射发布错误，全量净化器档位错</td>
+<td>联动</td>
+<td><span class="f f2">S2</span></td>
+<td>发布后档位分布突变</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-2-14-寿命系数错误"><code>INC-2-14</code></a></td>
+<td>滤芯寿命系数错误导致全量提前或延后提醒</td>
+<td>滤芯</td>
+<td><span class="f f2">S2</span></td>
+<td>health 分布突变；提醒推送量突增</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-2-15-更换未识别"><code>INC-2-15</code></a></td>
+<td>滤芯更换未识别，health 不回 100%</td>
+<td>滤芯</td>
+<td><span class="f f1">S3</span></td>
+<td>FILTER_REPLACED 后 health 未变</td>
+<td>1 d</td>
+</tr>
+<tr>
+<td><a href="#inc-2-16-滤芯批漏跑或重跑"><code>INC-2-16</code></a></td>
+<td>滤芯批漏跑或重跑，累计风量翻倍</td>
+<td>滤芯</td>
+<td><span class="f f1">S3</span></td>
+<td>last_hour 不连续；批 runs 计数</td>
+<td>1 d</td>
+</tr>
+<tr>
+<td><a href="#inc-2-17-配件在主机作业中升级"><code>INC-2-17</code></a></td>
+<td>配件 OTA 在主机作业中升级，排烟中断</td>
+<td>OTA</td>
+<td><span class="f f2">S2</span></td>
+<td>配件 OTA_PROGRESS 与主机 work_state=2 重叠</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-2-18-配件心跳流量超预估"><code>INC-2-18</code></a></td>
+<td>配件心跳流量超预估拖慢管道</td>
+<td>数据</td>
+<td><span class="f f1">S3</span></td>
+<td>pipeline lag；ACC 心跳占比</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-2-19-安全排烟规则卡死"><code>INC-2-19</code></a></td>
+<td>安全排烟规则卡死，净化器最大档不回落</td>
+<td>联动</td>
+<td><span class="f f1">S3</span></td>
+<td>fan_level=4 超 10 min 的设备数</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-2-20-linkage_audit-分区缺失"><code>INC-2-20</code></a></td>
+<td>linkage_audit 分区缺失，审计落库停止</td>
+<td>运维</td>
+<td><span class="f f1">S3</span></td>
+<td>PG no partition；审计 lag</td>
+<td>1 h</td>
+</tr>
+</tbody>
+</table></div>
+
+<h2 id="2-云端联动"><span class="no">02</span>云端联动</h2>
+<h3 id="inc-2-01-规则引擎失效"><code>INC-2-01</code> 规则引擎失效</h3>
+<p><b class="k">触发</b>accessory-svc 全部副本挂；JetStream 消费组 pending 堆积；Redis 不可用导致每条都回源 PG 变慢。</p>
+<p><b class="k">传播</b>云端联动停止 → 净化器依赖本地兜底启停（默认档，不按材料调档）→ 用户感知「档位不对」但排烟仍在。延时关闭也停止，本地信号消失后净化器由固件自行延时关。</p>
+<p><b class="k">检测信号</b><code>nats consumer info IOT_UP accessory</code> pending &gt; 100 持续 1 分钟；trigger_source=local 占比从基线（预期 &lt; 10%）升到 &gt; 50%；linkage_triggered 速率归零。</p>
+<p><b class="k">止血</b>拉起服务；pending 自动追。追赶期间会对已结束的作业补发过期的 desired，需<strong>丢弃 recv_ts 早于 60 s 的事件</strong>（规则引擎启动时按时间过滤，不重放历史联动）。</p>
+<p><b class="k">恢复</b>观察 local 比例回到基线。</p>
+<p><b class="k">根治</b>2 副本跨可用区；过期事件丢弃是必备逻辑；本地兜底的默认档按材料类型由主机广播携带（P1 固件）。</p>
+<p><b class="k">演练</b>kill accessory-svc 60 s，模拟器 <code>-local-signal</code> 验证净化器仍随主机启停。</p>
+
+<h3 id="inc-2-02-联动延迟超-3-s"><code>INC-2-02</code> 联动延迟超 3 s</h3>
+<p><b class="k">触发</b>配对缓存 miss 率高（TTL 太短或频繁失效）→ 每条回源 PG；deviceapi PATCH /desired 慢（PG 分片库压力）；规则引擎单副本处理串行。</p>
+<p><b class="k">传播</b>净化器晚开几秒，前几秒烟雾未被抽走。本地兜底若在则用户无感。</p>
+<p><b class="k">检测信号</b>linkage 延迟 P99 &gt; 3 s 持续 5 分钟；缓存命中率 &lt; 90%；deviceapi PATCH 延迟。</p>
+<p><b class="k">止血</b>配对缓存 TTL 从 60 s 调到 300 s（配对变更主动失效不受影响）；规则引擎按 host_sn 分片并行。</p>
+<p><b class="k">根治</b>三段延迟分别记录（事件到达、决策完成、desired 写入）定位慢在哪一跳；deviceapi 与规则引擎分 PG 连接池。</p>
+
+<h3 id="inc-2-03-云端建议关被错误采纳-s1"><code>INC-2-03</code> 云端建议关被错误采纳（S1）</h3>
+<p><b class="k">触发</b>净化器固件仲裁 bug，把云端 power_on:false 当成命令执行，不检查本地信号；或本地信号因主机固件 bug 停止广播。规则引擎误判 JOB_DONE（如 JOB_PAUSE 被当成结束）发出关闭建议。</p>
+<p><b class="k">传播</b>作业进行中净化器停转，烟雾外溢。用户投诉、健康风险。</p>
+<p><b class="k">检测信号</b>对账任务每分钟：配对中主机影子 work_state=2 且净化器 reported.power_on=false 持续 &gt; 30 s 的配对数 &gt; 0 即告警。</p>
+<p><strong>止血（5 分钟内）</strong></p>
+<ol>
+<li>规则引擎全局开关 <code>IOT_ACC_ALLOW_OFF=false</code>：只发开启建议，不发关闭建议，登记。净化器长开耗滤芯，可接受。</li>
+<li>已停转的设备：对这些配对立即下发 power_on:true, fan_level 按当前规则。</li>
+</ol>
+<p><b class="k">恢复</b>固件修复仲裁逻辑后走 OTA 灰度，观察对账指标归零后恢复关闭建议。</p>
+<p><b class="k">根治</b>固件仲裁「关闭需两路径都允许」列为红线并有台架测试；云端关闭建议附带 <code>reason</code> 与 <code>host_work_state</code>，固件校验主机状态不为 2 才执行；规则引擎只在 JOB_DONE / JOB_FAIL / work_state=0 三种触发下发关闭，JOB_PAUSE 不算。</p>
+<p><b class="k">演练</b>模拟器净化器 <code>-ignore-arbitration</code> 模式（错误固件）+ 主机作业中人为发关闭 → 对账告警触发。</p>
+
+<h3 id="inc-2-04-延时关闭定时器丢失"><code>INC-2-04</code> 延时关闭定时器丢失</h3>
+<p><b class="k">触发</b>Redis ZSET <code>linkage:off</code> 被清空或 Redis 切换丢数据；规则引擎重启期间到期项未被处理；ZPOPMIN 后进程崩溃丢失该项。</p>
+<p><b class="k">传播</b>净化器在主机空闲后长开，耗滤芯与电，用户投诉「自动关不灵」。</p>
+<p><b class="k">检测信号</b>对账：主机空闲超 off_delay_s + 60 s 且净化器 power_on=true 且 trigger_source=cloud 的配对数。</p>
+<p><b class="k">止血</b>对账任务对这些配对补发关闭建议（本身就是修复动作）。</p>
+<p><b class="k">根治</b>ZPOPMIN 改为先标记处理中再删除（两步）；对账任务常态化每 5 分钟，作为定时器的兜底；净化器固件自身有最大连续运行时长保护（如 2 h 无主机信号自动关）。</p>
+
+<h3 id="inc-2-05-联动风暴"><code>INC-2-05</code> 联动风暴</h3>
+<p><b class="k">触发</b>主机固件 work_state 在 2 与 1 之间抖动（预热与作业反复）；或 JOB_START 事件重发未被幂等拦住；规则引擎按每帧 telemetry 触发而未比对影子。</p>
+<p><b class="k">传播</b>每秒对净化器下发 desired → deviceapi PG shadow_desired 版本飞涨 → 净化器频繁调档 → MQTT 下行拥塞。</p>
+<p><b class="k">检测信号</b>单 acc_sn 每分钟 linkage_triggered &gt; 10；deviceapi PATCH /desired QPS 突增。</p>
+<p><b class="k">止血</b>规则引擎按 acc_sn 限流：同一动作 30 s 内不重复下发（目标状态相同则跳过）；对抖动主机暂时禁用联动。</p>
+<p><b class="k">根治</b>动作幂等化：下发前读净化器影子 desired，目标相同不写；work_state 触发加 10 s 去抖窗口；幂等键 <code>linkage:seen</code> 覆盖 telemetry 触发。</p>
+
+<h3 id="inc-2-13-材料档位映射发布错误"><code>INC-2-13</code> 材料档位映射发布错误</h3>
+<p><b class="k">触发</b>linkage_rule 新版本把亚克力映射到 1 档（应为 4 档），10 分钟内全量生效。</p>
+<p><b class="k">传播</b>切亚克力时净化器低档运行，异味投诉集中。</p>
+<p><b class="k">检测信号</b>发布后档位分布突变（fan_level=4 占比骤降）；投诉。</p>
+<p><b class="k">止血</b>复用 param-svc 回滚（product_key=ACC_PURIFIER 的 release 序列），≤ 5 min。</p>
+<p><b class="k">根治</b>映射发布走 param-svc 的差异校验与双人审批（本方案已定）；规则引擎对映射缓存带版本，回滚后 1 分钟内刷新。</p>
+
+<h3 id="inc-2-19-安全排烟规则卡死"><code>INC-2-19</code> 安全排烟规则卡死</h3>
+<p><b class="k">触发</b>主机安全事件触发净化器最大档 10 分钟，但 Redis <code>linkage:safety:{acc_sn}</code> TTL 未设或规则引擎未在到期后回到普通规则。</p>
+<p><b class="k">传播</b>净化器长期最大档，噪音大、滤芯消耗快。</p>
+<p><b class="k">检测信号</b>fan_level=4 且持续 &gt; 15 分钟且主机无安全事件的设备数。</p>
+<p><b class="k">止血</b>对账任务对这些设备按普通规则重新下发。</p>
+<p><b class="k">根治</b>安全窗口用带 TTL 的 key 并在到期扫描中显式回落；净化器固件对云端 fan_level 4 有自身最大持续时长。</p>
+
+<h2 id="3-配对"><span class="no">03</span>配对</h2>
+<h3 id="inc-2-06-配对错误-s1"><code>INC-2-06</code> 配对错误（S1）</h3>
+<p><b class="k">触发</b>BFF 漏校验用户对 acc_sn 的 owner 绑定，只校验了 host_sn；或配对接口接受任意 acc_sn。攻击者或误操作把别人的净化器配到自己主机。</p>
+<p><b class="k">传播</b>我的作业让别人的净化器启停；别人的灭火事件让我的主机停机。既是隐私也是安全问题。</p>
+<p><b class="k">检测信号</b>每日对账：accessory_pairing 有效配对中 host_sn 与 acc_sn 的 owner（device_binding）不同的行数 &gt; 0。配对接口对未绑定 acc_sn 的请求应 404。</p>
+<p><b class="k">止血</b>立即解除对账发现的错误配对；下线配对接口回滚版本。</p>
+<p><b class="k">根治</b>accessory-svc 配对接口自身也校验两台设备的 owner 一致（不只依赖 BFF，双保险）；配对需配件端确认（配件收到 desired.paired_sn 后用户在配件上按键确认，P1）；对账进每日任务。</p>
+
+<h3 id="inc-2-12-解绑后配对未解除"><code>INC-2-12</code> 解绑后配对未解除</h3>
+<p><b class="k">触发</b>device_binding 的解绑走了别的路径（直接 SQL、批处理）未触发 trigger；或触发器被误删；或解绑写的是 DELETE 而非 unbound_at。</p>
+<p><b class="k">传播</b>转让后原 owner 的新主机若与该净化器仍配对，可继续控制。</p>
+<p><b class="k">检测信号</b>对账：有效配对的 host_sn 在 device_binding 中无有效绑定。</p>
+<p><b class="k">止血</b>对账脚本自动解除。</p>
+<p><b class="k">根治</b>解绑只允许经 deviceapi 接口（UPDATE unbound_at）；触发器存在性进每日巡检；对账常态化。</p>
+
+<h2 id="4-安全事件"><span class="no">04</span>安全事件</h2>
+<h3 id="inc-2-07-灭火事件未推送或未关联主机-s1"><code>INC-2-07</code> 灭火事件未推送或未关联主机（S1）</h3>
+<p><b class="k">触发</b>与 BL1 INC-10 同路径（bridge / JetStream / alarm-svc / 推送）；BL2 特有的是 alarm_context 富化失败（accessory-svc 挂、配对缓存 miss）导致告警无主机信息。</p>
+<p><b class="k">传播</b>用户不知道灭火器触发了；或知道了但不知道当时主机在做什么，事后复核困难。</p>
+<p><b class="k">检测信号</b>BL1 的合成探针与对账覆盖告警本身；alarm_context 对账：安全码告警 5 分钟后无 context 行的数量。</p>
+<p><b class="k">止血</b>告警链路按 BL1 INC-10 处置；context 缺失由对账任务补录（从主机影子历史或 job_record 回填）。</p>
+<p><b class="k">根治</b>模拟器 <code>-acc-event FIRE_SUPPRESSED</code> 加入合成探针巡检；alarm_context 富化失败 Nak 重试而不是丢弃。</p>
+
+<h3 id="inc-2-08-烟雾误报风暴"><code>INC-2-08</code> 烟雾误报风暴</h3>
+<p><b class="k">触发</b>烟雾传感器阈值偏低，正常切割烟雾触发 SMOKE_HIGH；一批传感器出厂偏差。</p>
+<p><b class="k">传播</b>上万条 critical 告警 → 推送与升级短信 → 净化器全部最大档 → 用户投诉、短信费用。与 BL1 INC-11 同形态但多了「净化器最大档」的物理后果。</p>
+<p><b class="k">检测信号</b>SMOKE_HIGH 每分钟 &gt; 100 且集中于同 fw_version；burnt / 味道投诉不匹配。</p>
+<p><b class="k">止血</b>alarm-svc 按 (product_key, code) 暂停升级短信（BL1 INC-11 的能力，P1）；推送保留；净化器最大档是合理反应，不干预。</p>
+<p><b class="k">根治</b>SMOKE_HIGH 分两档由固件判定（高档才是安全码）；阈值 OTA 调参；同码集中爆发自动转批次事件。</p>
+
+<h3 id="inc-2-09-灭火事件误触发主机-stop"><code>INC-2-09</code> 灭火事件误触发主机 stop</h3>
+<p><b class="k">触发</b>FIRE_SUPPRESSED 误报（灭火器传感器故障）或配对错误（INC-2-06）→ accessory-svc 对主机下发 stop → 正常作业中断、材料报废。</p>
+<p><b class="k">传播</b>用户损失材料；若频发，用户关闭联网。</p>
+<p><b class="k">检测信号</b>cmd_audit operator=accessory-svc action=stop 的数量与 FIRE_SUPPRESSED 告警数对比；主机当时无 FLAME_DETECTED 的比例。</p>
+<p><b class="k">止血</b><code>IOT_ACC_STOP_HOST_ON_FIRE=false</code>，登记。</p>
+<p><b class="k">根治</b>stop 只在主机自身也报了 FLAME / OVER_TEMP 或 SMOKE_HIGH 时下发（双证据）；开放问题 3 决策后可能永久关闭该规则。</p>
+
+<h2 id="5-本地兜底"><span class="no">05</span>本地兜底</h2>
+<h3 id="inc-2-10-本地兜底失效-s1"><code>INC-2-10</code> 本地兜底失效（S1）</h3>
+<p><b class="k">触发</b>主机固件作业信号广播 bug（某版本不发、发错端口、HMAC 错）；净化器固件接收 bug；路由器隔离组播；蓝牙距离超出。云端同时不可用（INC-2-01）时净化器完全不开。</p>
+<p><b class="k">传播</b>这是 BL2 唯一「两条路径同时失效」的事故，作业中无排烟。</p>
+<p><b class="k">检测信号</b>trigger_source=local 占比归零（云端正常时也应有少量 local，因为本地通常更快）；断网台架测试；用户投诉「云挂了净化器不动」。</p>
+<p><b class="k">止血</b>无线上止血手段，只能保证云端联动可用（提升 accessory-svc 优先级），并推送用户「请手动开启净化器」。</p>
+<p><b class="k">根治</b>本地兜底是固件红线 DR-202，出厂前台架断网测试；主机与净化器双通道（组播 + 蓝牙）；云端持续统计 local 比例作为兜底健康度。</p>
+<p><b class="k">演练</b>模拟器 <code>-local-signal=false</code>（错误固件）+ kill accessory-svc → 净化器不开 → 验证告警。</p>
+
+<h3 id="inc-2-11-本地信号被邻居触发"><code>INC-2-11</code> 本地信号被邻居触发</h3>
+<p><b class="k">触发</b>作业信号无 HMAC 或 pair_key 泄漏；净化器不校验 host_sn。</p>
+<p><b class="k">传播</b>邻居开机我的净化器跟着转。</p>
+<p><b class="k">根治</b>广播载荷带 host_sn + HMAC(pair_key)；净化器只响应 reported.paired_sn 且 HMAC 通过的信号；pair_key 配对时下发、解除时轮换。</p>
+
+<h2 id="6-滤芯寿命"><span class="no">06</span>滤芯寿命</h2>
+<h3 id="inc-2-14-寿命系数错误"><code>INC-2-14</code> 寿命系数错误</h3>
+<p><b class="k">触发</b>filter_model 的 flow_coeff 或 rated_volume 填错单位（m³ 与 L）；压差系数过大。</p>
+<p><b class="k">传播</b>全量净化器 health 骤降 → 提醒推送量突增 → 用户提前买滤芯（或延后不买）→ 信任受损。</p>
+<p><b class="k">检测信号</b>批后 health 分布中位数变化 &gt; 20%；≤ 20% 设备数突增；提醒推送量。</p>
+<p><b class="k">止血</b>filter_model 回滚上一版本；从 telemetry_1h 重算 eq_air_volume（批是幂等可重算的）。</p>
+<p><b class="k">根治</b>filter_model 变更走双人审批；变更后先对 1% 设备影子计算比对再全量；提醒文案给区间。</p>
+
+<h3 id="inc-2-15-更换未识别"><code>INC-2-15</code> 更换未识别</h3>
+<p><b class="k">触发</b>用户换了滤芯但未在 App 确认；FILTER_REPLACED 事件丢；desired filter_reset 未回报。</p>
+<p><b class="k">传播</b>health 继续下降，反复提醒，用户烦躁。</p>
+<p><b class="k">根治</b>滤芯仓开合传感器（DR-207）产生候选并在 App 一键确认；压差骤降（换新滤芯的物理特征）作为自动识别的辅助信号。</p>
+
+<h3 id="inc-2-16-滤芯批漏跑或重跑"><code>INC-2-16</code> 滤芯批漏跑或重跑</h3>
+<p><b class="k">触发</b>批进程挂了几小时后重启只算「上一小时」漏掉中间；或重跑同一小时累计翻倍。</p>
+<p><b class="k">传播</b>eq_air_volume 偏小或偏大。</p>
+<p><b class="k">根治</b>批按 filter_life.last_hour 补齐到当前的每个小时（幂等：同一小时不重复累加，用 last_hour 守卫）；单测覆盖跨多小时补算。</p>
+
+<h2 id="7-ota-与数据"><span class="no">07</span>OTA 与数据</h2>
+<h3 id="inc-2-17-配件在主机作业中升级"><code>INC-2-17</code> 配件在主机作业中升级</h3>
+<p><b class="k">触发</b>ota-svc 只检查配件自身空闲，未检查配对主机；或主机影子过期。</p>
+<p><b class="k">传播</b>升级重启期间净化器停转，作业中排烟中断。</p>
+<p><b class="k">根治</b>pendingTasks 对 ACC_* 设备加配对主机影子 work_state=0 检查；配件固件收到 OTA 指令时若本地信号活跃则延后。</p>
+
+<h3 id="inc-2-18-配件心跳流量超预估"><code>INC-2-18</code> 配件心跳流量超预估</h3>
+<p><b class="k">触发</b>净化器心跳按主机纪律 60 s 而非 120 s；连带率高于估算。</p>
+<p><b class="k">检测信号</b>pipeline lag；按 product_key 切片的消息速率。</p>
+<p><b class="k">止血</b>OTA 调心跳间隔到 120 s（DR-205 可调参）。</p>
+
+<h3 id="inc-2-20-linkage_audit-分区缺失"><code>INC-2-20</code> linkage_audit 分区缺失</h3>
+<p>同 BL1 INC-24 形态，复用 ensure 分区函数模式与每日探针。</p>
+
+<h2 id="8-演练计划"><span class="no">08</span>演练计划</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>演练</th>
+<th>剧本</th>
+<th>对应事故</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>迭代 1 出口</td>
+<td>规则引擎 kill</td>
+<td>kill accessory-svc + <code>-local-signal</code> 净化器随主机启停</td>
+<td>INC-2-01 INC-2-10</td>
+</tr>
+<tr>
+<td>迭代 1 出口</td>
+<td>错误仲裁固件</td>
+<td><code>-ignore-arbitration</code> + 作业中发关闭 → 对账告警</td>
+<td><a href="#inc-2-03-云端建议关被错误采纳-s1"><code>INC-2-03</code></a></td>
+</tr>
+<tr>
+<td>迭代 1 出口</td>
+<td>联动风暴</td>
+<td>主机模拟器 work_state 每秒抖动 → 去抖与限流生效</td>
+<td><a href="#inc-2-05-联动风暴"><code>INC-2-05</code></a></td>
+</tr>
+<tr>
+<td>迭代 2 出口</td>
+<td>灭火链路</td>
+<td><code>-acc-event FIRE_SUPPRESSED</code> → 告警 + context + 主机 stop，P99 &lt; 3 s</td>
+<td>INC-2-07 INC-2-09</td>
+</tr>
+<tr>
+<td>迭代 2 出口</td>
+<td>配对越权</td>
+<td>A 用户配对 B 的净化器 → 404；对账</td>
+<td><a href="#inc-2-06-配对错误-s1"><code>INC-2-06</code></a></td>
+</tr>
+<tr>
+<td>迭代 3 出口</td>
+<td>系数错误</td>
+<td>filter_model 单位错 → 分布告警 → 回滚重算</td>
+<td><a href="#inc-2-14-寿命系数错误"><code>INC-2-14</code></a></td>
+</tr>
+<tr>
+<td>每月</td>
+<td>对账巡检</td>
+<td>作业中停转、长开、配对 owner 一致、解绑传导四项对账</td>
+<td>INC-2-03 04 06 12</td>
+</tr>
+</tbody>
+</table></div>
+
+<h2 id="9-迭代-1-出口前必须补齐的能力"><span class="no">09</span>迭代 1 出口前必须补齐的能力</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>能力</th>
+<th>对应事故</th>
+<th>优先级</th>
+<th>状态（2026-09-19）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>「作业中净化器停转」对账任务每分钟</td>
+<td><a href="#inc-2-03-云端建议关被错误采纳-s1"><code>INC-2-03</code></a></td>
+<td>P0</td>
+<td>已实现 ReconcileDecide + IOT_ACC_RECONCILE_INTERVAL</td>
+</tr>
+<tr>
+<td>规则引擎关闭建议全局开关 IOT_ACC_ALLOW_OFF</td>
+<td><a href="#inc-2-03-云端建议关被错误采纳-s1"><code>INC-2-03</code></a></td>
+<td>P0</td>
+<td>已实现 AllowOff</td>
+</tr>
+<tr>
+<td>过期事件丢弃（recv_ts &gt; 60 s 不联动）</td>
+<td><a href="#inc-2-01-规则引擎失效"><code>INC-2-01</code></a></td>
+<td>P0</td>
+<td>已实现 IsStale</td>
+</tr>
+<tr>
+<td>动作幂等（目标状态相同不下发）+ work_state 去抖</td>
+<td><a href="#inc-2-05-联动风暴"><code>INC-2-05</code></a></td>
+<td>P0</td>
+<td>已实现 Decide 幂等分支 + 10 s 去抖，单测覆盖</td>
+</tr>
+<tr>
+<td>配对接口双方 owner 一致校验 + 每日对账</td>
+<td>INC-2-06 INC-2-12</td>
+<td>P0</td>
+<td>校验已实现 OwnersConsistent；每日对账未做</td>
+</tr>
+<tr>
+<td>定时器两步删除 + 长开对账兜底</td>
+<td><a href="#inc-2-04-延时关闭定时器丢失"><code>INC-2-04</code></a></td>
+<td>P0</td>
+<td>已实现 Redis ZSET 两步 + off_requeued；实机验证 off_sent / off_cancelled</td>
+</tr>
+<tr>
+<td>主机 stop 双证据规则 + 开关</td>
+<td><a href="#inc-2-09-灭火事件误触发主机-stop"><code>INC-2-09</code></a></td>
+<td>P0</td>
+<td>已实现 HostStopEvidence + IOT_ACC_STOP_HOST_ON_FIRE</td>
+</tr>
+<tr>
+<td>alarm_context 富化失败 Nak 重试 + 对账</td>
+<td><a href="#inc-2-07-灭火事件未推送或未关联主机-s1"><code>INC-2-07</code></a></td>
+<td>P0</td>
+<td>写入已实现；失败 Nak 重试未做</td>
+</tr>
+<tr>
+<td>本地兜底台架断网测试进固件出厂</td>
+<td><a href="#inc-2-10-本地兜底失效-s1"><code>INC-2-10</code></a></td>
+<td>固件红线</td>
+<td>固件侧，不在本仓库</td>
+</tr>
+<tr>
+<td>滤芯批按 last_hour 幂等补算</td>
+<td><a href="#inc-2-16-滤芯批漏跑或重跑"><code>INC-2-16</code></a></td>
+<td>P1</td>
+<td>已实现 FilterStep</td>
+</tr>
+<tr>
+<td>filter_model 双人审批与 1% 比对</td>
+<td><a href="#inc-2-14-寿命系数错误"><code>INC-2-14</code></a></td>
+<td>P1</td>
+<td>未做</td>
+</tr>
+<tr>
+<td>配件 OTA 检查配对主机空闲</td>
+<td><a href="#inc-2-17-配件在主机作业中升级"><code>INC-2-17</code></a></td>
+<td>P1</td>
+<td>未做</td>
+</tr>
+<tr>
+<td>linkage_audit 分区滚动</td>
+<td><a href="#inc-2-20-linkage_audit-分区缺失"><code>INC-2-20</code></a></td>
+<td>P0</td>
+<td>已实现 ensure_linkage_audit_partitions</td>
+</tr>
+</tbody>
+</table></div>
+
+<footer>
+  <p>本文与 docs/incident-premortem-bl1.md、docs/incident-premortem-bl4.md 配套：设备与平台侧看 BL1，入口与授权看 BL4，配对、联动、兜底、滤芯看本文。每次真实事故后按 docs/incident-register-storm.md 的格式复盘并回写对应 INC-2 条目。</p>
+</footer>
+</div>
+
+</body>
+</html>

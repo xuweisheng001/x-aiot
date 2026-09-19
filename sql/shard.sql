@@ -106,3 +106,49 @@ CREATE TABLE IF NOT EXISTS consumable_health (
   updated_at       TIMESTAMPTZ  NOT NULL DEFAULT now(),
   PRIMARY KEY (sn, part)
 );
+
+-- ---------------------------------------------------------------------------
+-- cmd_audit 分区滚动（INC-24）：deviceapi 启动与每日调用；生产可换 pg_partman。
+-- 只新增函数，不改任何表与约束。
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION iot_shard.ensure_cmd_audit_partitions(months_ahead int)
+RETURNS int LANGUAGE plpgsql AS $$
+DECLARE
+  m0 date := date_trunc('month', now())::date;
+  i int; created int := 0; part text; lo date; hi date;
+BEGIN
+  IF months_ahead < 0 THEN months_ahead := 0; END IF;
+  FOR i IN 0..months_ahead LOOP
+    lo := (m0 + make_interval(months => i))::date;
+    hi := (m0 + make_interval(months => i + 1))::date;
+    part := format('cmd_audit_%s', to_char(lo, 'YYYYMM'));
+    IF to_regclass('iot_shard.' || part) IS NULL THEN
+      EXECUTE format('CREATE TABLE IF NOT EXISTS iot_shard.%I PARTITION OF iot_shard.cmd_audit FOR VALUES FROM (%L) TO (%L)', part, lo, hi);
+      created := created + 1;
+    END IF;
+  END LOOP;
+  RETURN created;
+END $$;
+
+-- 删除整月早于 now()-days 的分区（180 天滚动）。返回删除数量。
+CREATE OR REPLACE FUNCTION iot_shard.drop_cmd_audit_partitions_older_than(days int)
+RETURNS int LANGUAGE plpgsql AS $$
+DECLARE
+  r record; dropped int := 0; cutoff date := (now() - make_interval(days => days))::date;
+  hi date;
+BEGIN
+  FOR r IN
+    SELECT c.relname
+      FROM pg_inherits h JOIN pg_class c ON c.oid = h.inhrelid
+      JOIN pg_class p ON p.oid = h.inhparent JOIN pg_namespace n ON n.oid = p.relnamespace
+     WHERE n.nspname = 'iot_shard' AND p.relname = 'cmd_audit'
+  LOOP
+    -- relname = cmd_audit_YYYYMM；分区上界 = 该月 +1 月
+    hi := (to_date(substr(r.relname, 11, 6), 'YYYYMM') + interval '1 month')::date;
+    IF hi <= cutoff THEN
+      EXECUTE format('DROP TABLE IF EXISTS iot_shard.%I', r.relname);
+      dropped := dropped + 1;
+    END IF;
+  END LOOP;
+  RETURN dropped;
+END $$;

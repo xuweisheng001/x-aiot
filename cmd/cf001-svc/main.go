@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -20,13 +21,27 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	key, generated, err := cf001.LoadOrGenerateKey(config.Env("IOT_CF001_KEY", "./data/keys/dev.pem"))
-	if err != nil {
-		slog.Error("load key", "err", err)
-		os.Exit(1)
-	}
-	if generated {
-		slog.Warn("running with ephemeral key: signatures will not verify after restart (dev only)")
+	keyPath := config.Env("IOT_CF001_KEY", "./data/keys/dev.pem")
+	requireKey := config.Env("IOT_CF001_REQUIRE_KEY", "false") == "true"
+	var key *rsa.PrivateKey
+	if requireKey {
+		k, err := cf001.LoadKeyStrict(keyPath)
+		if err != nil {
+			slog.Error("IOT_CF001_REQUIRE_KEY=true and key unavailable; refusing to start (an ephemeral key would sign SNs that stop verifying after restart)",
+				"path", keyPath, "err", err)
+			os.Exit(1)
+		}
+		key = k
+	} else {
+		k, generated, err := cf001.LoadOrGenerateKey(keyPath)
+		if err != nil {
+			slog.Error("load key", "err", err)
+			os.Exit(1)
+		}
+		if generated {
+			slog.Warn("running with ephemeral key: signatures will not verify after restart (dev only; set IOT_CF001_REQUIRE_KEY=true in prod)")
+		}
+		key = k
 	}
 	db := config.MustPG(ctx)
 	defer db.Close()
@@ -34,6 +49,11 @@ func main() {
 	defer rdb.Close()
 
 	svc := cf001.NewService(db, rdb, key)
+	svc.FreshnessWindow = config.EnvDuration("IOT_CF001_FRESHNESS_WINDOW", cf001.DefaultFreshnessWindow)
+	if config.Env("IOT_CF001_SKIP_FRESHNESS", "false") == "true" {
+		svc.SkipFreshness = true
+		slog.Warn("IOT_CF001_SKIP_FRESHNESS=true: timestamp freshness and nonce replay checks are DISABLED (dev only)")
+	}
 	addr := config.Env("IOT_HTTP_ADDR", ":8087")
 	slog.Info("cf001-svc listening", "addr", addr, "version", version)
 	if err := httpx.Serve(addr, cf001.Routes(svc, version), ctx.Done()); err != nil && ctx.Err() == nil {

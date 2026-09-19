@@ -61,6 +61,8 @@ type Service struct {
 	M   *Metrics
 	// Notify 模拟 App 推送；默认打一行 slog。返回 error 时告警停留在 open。
 	Notify func(ctx context.Context, a Alarm) error
+	// Targets 是 fleet-svc 的告警目标查询（BL5 §09.1，见 targets.go）；nil = 不查，按个人绑定推送。
+	Targets TargetLookup
 }
 
 func NewService(db *pgxpool.Pool, rdb *redis.Client, m *Metrics) *Service {
@@ -84,6 +86,16 @@ func SquelchKey(sn, code string) string { return fmt.Sprintf("alarm:squelch:%s:%
 // HandleEvent 处理一条 event 信封。返回 err 表示瞬时故障（调用方 Nak）；
 // 解析类错误不返回 err（调用方 Ack 丢弃），以 Outcome 区分。
 func (s *Service) HandleEvent(ctx context.Context, env *envelope.Envelope) (Outcome, error) {
+	return s.handleEvent(ctx, env, true)
+}
+
+// HandleEventNoSquelch 绕过 5 分钟 squelch 直接建告警。只供对账补录使用：
+// 对账已经证明这条事件在 PG 里没有对应告警，再走 squelch 可能被同 SN 同 code 的近期告警吞掉。
+func (s *Service) HandleEventNoSquelch(ctx context.Context, env *envelope.Envelope) (Outcome, error) {
+	return s.handleEvent(ctx, env, false)
+}
+
+func (s *Service) handleEvent(ctx context.Context, env *envelope.Envelope, squelch bool) (Outcome, error) {
 	s.M.Inc("events_total")
 	var p eventPayload
 	if err := json.Unmarshal(env.Payload, &p); err != nil || p.Code == "" {
@@ -101,17 +113,19 @@ func (s *Service) HandleEvent(ctx context.Context, env *envelope.Envelope) (Outc
 		ts = env.RecvTs
 	}
 	// squelch：Redis 出错时放行并计数（宁可重复告警不可漏报）。
-	ok, err := s.RDB.SetNX(ctx, SquelchKey(env.SN, p.Code), 1, SquelchTTL).Result()
-	if err != nil {
-		s.M.Inc("squelch_redis_errors")
-		slog.Warn("squelch redis error, passing through", "err", err)
-	} else if !ok {
-		s.M.Inc("events_squelched")
-		return OutcomeSquelched, nil
+	if squelch {
+		ok, err := s.RDB.SetNX(ctx, SquelchKey(env.SN, p.Code), 1, SquelchTTL).Result()
+		if err != nil {
+			s.M.Inc("squelch_redis_errors")
+			slog.Warn("squelch redis error, passing through", "err", err)
+		} else if !ok {
+			s.M.Inc("events_squelched")
+			return OutcomeSquelched, nil
+		}
 	}
 
 	var a Alarm
-	err = s.DB.QueryRow(ctx,
+	err := s.DB.QueryRow(ctx,
 		`INSERT INTO iot_shard.alarm(sn,code,level,event_ts,status)
 		 VALUES ($1,$2,$3,to_timestamp($4::double precision/1000),'open')
 		 RETURNING id, event_ts`, env.SN, p.Code, LevelCritical, ts).Scan(&a.ID, &a.EventTs)
@@ -122,6 +136,10 @@ func (s *Service) HandleEvent(ctx context.Context, env *envelope.Envelope) (Outc
 	a.SN, a.Code, a.Level, a.Status = env.SN, p.Code, LevelCritical, StatusOpen
 	s.M.Inc("alarms_opened")
 
+	// 组织订阅目标（只读辅助查询，失败即回退个人绑定；状态机不受影响，见 targets.go）
+	if targets := s.resolveTargets(ctx, env.SN); len(targets) > 0 {
+		slog.Info("alarm targets resolved", "alarm_id", a.ID, "sn", a.SN, "targets", len(targets), "first_source", targets[0].Source)
+	}
 	if err := s.Notify(ctx, a); err != nil {
 		s.M.Inc("notify_errors")
 		slog.Error("notify failed, alarm stays open", "alarm_id", a.ID, "err", err)

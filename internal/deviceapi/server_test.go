@@ -21,10 +21,26 @@ import (
 
 func init() { slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil))) }
 
+// order 记录 audit / mqtt 发布的先后，用于断言"审计先于指令"。
+type order struct {
+	mu sync.Mutex
+	ev []string
+}
+
+func (o *order) add(s string) {
+	if o == nil {
+		return
+	}
+	o.mu.Lock()
+	o.ev = append(o.ev, s)
+	o.mu.Unlock()
+}
+
 type fakeMQTT struct {
 	mu   sync.Mutex
 	msgs []struct{ topic, payload string }
 	err  error
+	ord  *order
 }
 
 func (f *fakeMQTT) Publish(topic string, payload []byte) error {
@@ -34,6 +50,7 @@ func (f *fakeMQTT) Publish(topic string, payload []byte) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.msgs = append(f.msgs, struct{ topic, payload string }{topic, string(payload)})
+	f.ord.add("mqtt")
 	return nil
 }
 
@@ -41,13 +58,19 @@ type fakeJS struct {
 	mu   sync.Mutex
 	subj []string
 	data [][]byte
+	err  error
+	ord  *order
 }
 
 func (f *fakeJS) Publish(_ context.Context, subject string, payload []byte, _ ...jetstream.PublishOpt) (*jetstream.PubAck, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.subj = append(f.subj, subject)
 	f.data = append(f.data, payload)
+	f.ord.add("audit")
 	return &jetstream.PubAck{}, nil
 }
 
@@ -90,6 +113,9 @@ func (s *fakeStore) MarkAcked(_ context.Context, id, result string) error {
 	s.acked[id] = result
 	return nil
 }
+func (s *fakeStore) EnsureAuditPartitions(_ context.Context, monthsAhead int) (int, error) {
+	return monthsAhead, nil
+}
 
 type fakeTD struct {
 	sql string
@@ -103,7 +129,8 @@ func (f *fakeTD) Query(_ context.Context, sql string) (*tdengine.Result, error) 
 }
 
 func newTestServer() (*Server, *fakeMQTT, *fakeJS, *fakeStore, *fakeTD) {
-	mq, js, st, td := &fakeMQTT{}, &fakeJS{}, newFakeStore(), &fakeTD{res: &tdengine.Result{}}
+	ord := &order{}
+	mq, js, st, td := &fakeMQTT{ord: ord}, &fakeJS{ord: ord}, newFakeStore(), &fakeTD{res: &tdengine.Result{}}
 	s := &Server{Store: st, MQTT: mq, JS: js, TD: td, Now: func() time.Time { return time.UnixMilli(1_726_300_000_000) }}
 	return s, mq, js, st, td
 }
@@ -153,6 +180,24 @@ func TestPostCmdDispatchAndAudit(t *testing.T) {
 	if err := json.Unmarshal(js.data[0], &rec2); err != nil || rec2.CmdID != cmdID || rec2.Operator != "alice" || rec2.Source != "console" || rec2.Result != "dispatched" || rec2.SN != "XT001" {
 		t.Fatalf("audit=%+v err=%v", rec2, err)
 	}
+	// 审计先于指令
+	if got := strings.Join(js.ord.ev, ","); got != "audit,mqtt" {
+		t.Fatalf("publish order=%s want audit,mqtt", got)
+	}
+}
+
+// 审计流不可用 → 503/100013，且 MQTT 未收到任何指令。
+func TestPostCmdAuditUnavailableRefusesDispatch(t *testing.T) {
+	s, mq, js, _, _ := newTestServer()
+	js.err = errors.New("jetstream: no responders")
+	rec := do(s.Handler(), "POST", "/api/v1/devices/XT001/cmd", `{"action":"pause"}`, nil)
+	code, _ := decode(t, rec)
+	if rec.Code != 503 || code != 100013 {
+		t.Fatalf("status=%d code=%d body=%s", rec.Code, code, rec.Body.String())
+	}
+	if len(mq.msgs) != 0 {
+		t.Fatalf("command must not be dispatched without audit: %+v", mq.msgs)
+	}
 }
 
 func TestPostCmdWhitelist(t *testing.T) {
@@ -186,8 +231,14 @@ func TestPostCmdMQTTFailure(t *testing.T) {
 	s, mq, js, _, _ := newTestServer()
 	mq.err = errors.New("broker down")
 	rec := do(s.Handler(), "POST", "/api/v1/devices/XT001/cmd", `{"action":"stop"}`, nil)
-	if rec.Code != 502 || len(js.subj) != 0 {
+	if rec.Code != 502 || len(js.subj) != 2 {
 		t.Fatalf("status=%d js=%v", rec.Code, js.subj)
+	}
+	var first, second AuditRecord
+	_ = json.Unmarshal(js.data[0], &first)
+	_ = json.Unmarshal(js.data[1], &second)
+	if first.Result != "dispatched" || second.Result != "dispatch_failed" || first.CmdID != second.CmdID {
+		t.Fatalf("audits=%+v / %+v", first, second)
 	}
 }
 

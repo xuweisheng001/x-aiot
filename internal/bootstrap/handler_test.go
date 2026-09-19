@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -171,3 +172,64 @@ func TestRateLimitByIP(t *testing.T) {
 }
 
 func itoa(i int) string { return string(rune('0' + i)) }
+
+type fakeDims struct {
+	mu   sync.Mutex
+	got  map[string]map[string]any
+	fail bool
+}
+
+func (f *fakeDims) WriteDims(_ context.Context, sn string, fields map[string]any) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.fail {
+		return errors.New("redis down")
+	}
+	if f.got == nil {
+		f.got = map[string]map[string]any{}
+	}
+	f.got[sn] = fields
+	return nil
+}
+
+func TestDimFields(t *testing.T) {
+	d := &Device{SN: "SN0001", ProductKey: "LM_S1", Region: "US", CellID: 2}
+	got := DimFields(d)
+	want := map[string]any{"pk": "LM_S1", "region": "US", "cell": "2"}
+	for k, v := range want {
+		if got[k] != v {
+			t.Fatalf("DimFields[%s]=%v want %v", k, got[k], v)
+		}
+	}
+	if len(got) != len(want) {
+		t.Fatalf("unexpected extra fields: %v", got)
+	}
+	if DimKey("SN0001") != "device:SN0001" {
+		t.Fatal("DimKey")
+	}
+}
+
+func TestBootstrapWritesDims(t *testing.T) {
+	srv, _ := newTestServer(t)
+	fd := &fakeDims{}
+	srv.Dims = fd
+	h := srv.Handler("bootstrap-svc", "test")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/bootstrap?sn=DIMS0001&pk=LM_P2", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d body %s", rec.Code, rec.Body.String())
+	}
+	fd.mu.Lock()
+	f := fd.got["DIMS0001"]
+	fd.mu.Unlock()
+	if f == nil || f["pk"] != "LM_P2" || f["region"] != DefaultRegion || f["cell"] == "" {
+		t.Fatalf("dims not written or wrong: %v", f)
+	}
+	// 维表写失败不影响调度响应
+	srv.Dims = &fakeDims{fail: true}
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/bootstrap?sn=DIMS0002", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("dims failure must not fail bootstrap: %d", rec.Code)
+	}
+}

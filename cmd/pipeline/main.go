@@ -74,7 +74,9 @@ func main() {
 			os.Exit(1)
 		}
 		consumers = append(consumers, cons)
-		workers = append(workers, pipeline.NewWorker(cell, cons, rdb, td, m, cfg))
+		w := pipeline.NewWorker(cell, cons, rdb, td, m, cfg)
+		w.DLQ = js // 毒消息落 IOT_DLQ 而不是丢弃
+		workers = append(workers, w)
 	}
 
 	var wg sync.WaitGroup
@@ -116,6 +118,12 @@ func ensureSchema(ctx context.Context, td *tdengine.Client, file string) error {
 	b, err := os.ReadFile(file)
 	if err != nil {
 		return err
+	}
+	// BL3：telemetry_1h 流目标表缺功率档占比列时先 DROP 流与目标表，再由 EnsureSchema 用新定义重建（幂等）
+	if rebuilt, err := td.RebuildStreamIfMissing(ctx, "telemetry_1h_s", "telemetry_1h", tdengine.Telemetry1hRequiredCols); err != nil {
+		return err
+	} else if rebuilt {
+		slog.Warn("telemetry_1h stream rebuilt with power-share columns; historical hourly buckets dropped (health-svc falls back to avg_power)")
 	}
 	return td.EnsureSchema(ctx, pipeline.SplitStatements(string(b)))
 }

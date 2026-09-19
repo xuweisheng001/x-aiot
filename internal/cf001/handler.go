@@ -67,6 +67,10 @@ type signBody struct {
 func Routes(svc *Service, version string) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", httpx.Healthz("cf001-svc", version))
+	if svc.C == nil {
+		svc.C = &Counters{}
+	}
+	mux.Handle("GET /metrics", svc.C)
 
 	mux.HandleFunc("GET /api/v1/oem/pubkey", func(w http.ResponseWriter, r *http.Request) {
 		pemB, err := PublicKeyPEM(&svc.Key.PublicKey)
@@ -168,6 +172,8 @@ func writeErr(w http.ResponseWriter, err error) {
 		httpx.Error(w, http.StatusNotFound, httpx.CodeNotFound, err.Error())
 	case errors.Is(err, ErrConflict):
 		httpx.Error(w, http.StatusConflict, httpx.CodeConflict, err.Error())
+	case errors.Is(err, ErrUnavailable):
+		httpx.Error(w, http.StatusServiceUnavailable, httpx.CodeInternal, err.Error())
 	default:
 		httpx.Error(w, http.StatusInternalServerError, httpx.CodeInternal, err.Error())
 	}

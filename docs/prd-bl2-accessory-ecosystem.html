@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --ink: #1c2733;
+  --muted: #56687a;
+  --accent: #0b7285;
+  --accent-ink: #085d6e;
+  --accent-soft: rgba(11, 114, 133, 0.08);
+  --warn: #b4540a;
+  --warn-soft: rgba(180, 84, 10, 0.07);
+  --line: #dbe3e9;
+  --code-bg: #eef3f5;
+  --code-ink: #14424c;
+  --chip-ink: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161b;
+    --surface: #171f26;
+    --ink: #e3ebf0;
+    --muted: #93a5b2;
+    --accent: #4fc0d3;
+    --accent-ink: #6fd0e0;
+    --accent-soft: rgba(79, 192, 211, 0.1);
+    --warn: #e8964e;
+    --warn-soft: rgba(232, 150, 78, 0.09);
+    --line: #2a3640;
+    --code-bg: #1d2830;
+    --code-ink: #a9d8e2;
+    --chip-ink: #0e1418;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10161b;
+  --surface: #171f26;
+  --ink: #e3ebf0;
+  --muted: #93a5b2;
+  --accent: #4fc0d3;
+  --accent-ink: #6fd0e0;
+  --accent-soft: rgba(79, 192, 211, 0.1);
+  --warn: #e8964e;
+  --warn-soft: rgba(232, 150, 78, 0.09);
+  --line: #2a3640;
+  --code-bg: #1d2830;
+  --code-ink: #a9d8e2;
+  --chip-ink: #0e1418;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  line-height: 1.85;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 5rem; }
+header { margin-bottom: 2.5rem; }
+.kicker {
+  font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin: 0 0 0.8rem;
+}
+h1 {
+  font-family: "Noto Serif SC", serif; font-weight: 900;
+  font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.25;
+  margin: 0 0 1rem; text-wrap: balance;
+}
+.lede { color: var(--muted); margin: 0; max-width: 40rem; }
+nav.toc {
+  margin: 2.2rem 0 0; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); padding: 1.1rem 1.3rem;
+}
+nav.toc p { margin: 0 0 0.5rem; font-size: 0.78rem; letter-spacing: 0.14em; color: var(--muted); font-weight: 700; }
+nav.toc ol {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.15rem 1.5rem;
+}
+nav.toc a { color: var(--ink); text-decoration: none; font-size: 0.93rem; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent-ink); }
+nav.toc li::before { content: counter(list-item, decimal-leading-zero) " "; color: var(--accent); font-family: "JetBrains Mono", monospace; font-size: 0.8rem; }
+section { margin-top: 3.5rem; }
+h2 {
+  font-family: "Noto Serif SC", serif; font-weight: 700;
+  font-size: 1.5rem; line-height: 1.4; margin: 0 0 0.4rem;
+  padding-top: 1.2rem; border-top: 2px solid var(--accent); text-wrap: balance;
+}
+h2 .no { font-family: "JetBrains Mono", monospace; font-size: 0.9rem; color: var(--accent); margin-right: 0.6em; font-weight: 600; }
+h3 {
+  font-weight: 700; font-size: 1.08rem; margin: 2rem 0 0.5rem; text-wrap: balance;
+}
+h3::before { content: "▸ "; color: var(--accent); }
+p { margin: 0.6rem 0; }
+.why { color: var(--muted); font-size: 0.92rem; margin-top: -0.1rem; }
+ul, ol { margin: 0.5rem 0 0.9rem; padding-left: 1.4rem; }
+li { margin: 0.3rem 0; }
+li::marker { color: var(--accent); }
+strong { font-weight: 700; }
+code {
+  font-family: "JetBrains Mono", "Menlo", monospace; font-size: 0.85em;
+  background: var(--code-bg); color: var(--code-ink);
+  padding: 0.1em 0.4em; border-radius: 4px;
+}
+pre {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0.8rem 0 1.2rem;
+}
+pre code { background: none; padding: 0; font-size: 0.84rem; line-height: 1.7; }
+.tablebox { overflow-x: auto; margin: 0.8rem 0 1.2rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.6; }
+th, td { text-align: left; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.8rem; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+.fix { border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0; }
+.fix b { color: var(--warn); }
+.callout {
+  border-left: 3px solid var(--accent); background: var(--accent-soft);
+  border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0;
+}
+.callout b { color: var(--accent-ink); }
+.f {
+  font-family: "JetBrains Mono", monospace; font-size: 0.68rem; font-weight: 600;
+  padding: 0.1em 0.55em; border-radius: 99px; white-space: nowrap;
+  vertical-align: 0.15em; margin-left: 0.5em; letter-spacing: 0.02em;
+}
+.f3 { background: var(--accent); color: var(--chip-ink); }
+.f2 { background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent); }
+.f1 { color: var(--muted); border: 1px solid var(--line); background: var(--surface); }
+td .f { margin-left: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.8rem 1.4rem; margin: 0.8rem 0 0; padding: 0; list-style: none; font-size: 0.88rem; color: var(--muted); }
+.legend li { margin: 0; }
+.qa { margin: 1.2rem 0; }
+.iq {
+  background: var(--accent-soft); border-radius: 10px 10px 10px 3px;
+  padding: 0.65rem 1rem; margin: 0.9rem 0 0.5rem; max-width: 92%;
+}
+.iq b { color: var(--accent-ink); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.ca {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px 10px 3px 10px;
+  padding: 0.65rem 1rem; margin: 0.5rem 0 0.5rem auto; max-width: 92%;
+}
+.ca b { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.note { color: var(--muted); font-size: 0.88rem; font-style: italic; margin: 0.4rem 0 1.1rem; padding-left: 1rem; border-left: 2px dashed var(--line); }
+footer { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+<title>配件与安全生态 AIoT PRD</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+.meta{display:grid;grid-template-columns:8em 1fr;gap:.2rem 1rem;font-size:.92rem;border:1px solid var(--line);border-radius:8px;padding:.9rem 1.1rem;background:var(--surface);margin:1.2rem 0}
+.meta dt{color:var(--muted);font-weight:700}.meta dd{margin:0}
+.p0{background:var(--accent);color:var(--chip-ink)}.p1{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent)}.p2{color:var(--muted);border:1px solid var(--line);background:var(--surface)}
+.story{border-left:3px solid var(--line);padding:.3rem 1rem;margin:.6rem 0;color:var(--muted);font-size:.95rem}
+.story b{color:var(--ink)}
+td code{white-space:nowrap}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="kicker">Product Requirements · BL2 配件与安全生态</p>
+  <h1>配件与安全生态 AIoT 产品需求文档</h1>
+  <p class="lede">xTool 设备云 BL2 业务线的产品需求：让净化器、灭火器、排烟风扇这些配件从「插在主机旁边的独立电器」变成设备云里有身份、有状态、能联动、能被算寿命的节点。主机作业时净化器自动启停调档，滤芯按实际风量算寿命并提醒，灭火事件上云留痕并推送。全部复用 BL1 建成的接入、影子、事件、指令、OTA 五条链路，配件作为独立设备接入同一管道，与主机通过配对关系绑定。云端联动是增强，本地联动是兜底：云挂了净化器照样跟着主机启停。与《xTool AIoT 平台技术方案》§6 / §7 / §9 / §17 及工程仓库 x-aiot 一一对应。</p>
+  <ul class="legend">
+    <li><span class="f p0">P0 必须</span> P1 首个迭代交付，是配件联动与灭火留痕的最小闭环</li>
+    <li><span class="f p1">P1 应该</span> 滤芯寿命与复购提醒，依赖小时级降采样积累</li>
+    <li><span class="f p2">P2 可以</span> 多配件编排与第三方配件接入</li>
+  </ul>
+  <dl class="meta">
+    <dt>文档版本</dt><dd>v0.1 评审稿 · 2026-09-18</dd>
+    <dt>业务线</dt><dd>BL2 配件与安全生态（净化器 / 灭火器 / 排烟风扇），依赖 BL1 平台与 BL4 App 入口，向 BL3 输出滤芯健康度</dd>
+    <dt>产品目标</dt><dd>配件跟着主机自动工作，用户不用手动开关；滤芯该换时提前知道；灭火事件有据可查</dd>
+    <dt>北极星指标</dt><dd>配件连带率 · 滤芯复购率</dd>
+    <dt>关联文档</dt><dd>docs/prd-bl1-consumer-laser.md · docs/prd-bl4-software-content.md · docs/tech-design-aiot-platform.md · docs/spec.md</dd>
+    <dt>状态</dt><dd>阶段 P1；待 BL1 P0 出口后立项，净化器固件本地联动能力需先确认</dd>
+  </dl>
+  <nav class="toc">
+    <p>目录</p>
+    <ol>
+      <li><a href="#01-背景与目标">背景与目标</a></li>
+      <li><a href="#02-用户-场景与用户故事">用户、场景与用户故事</a></li>
+      <li><a href="#03-范围-首迭代做什么-不做什么">范围：首迭代做什么、不做什么</a></li>
+      <li><a href="#04-功能需求">功能需求</a></li>
+      <li><a href="#05-配件端-固件-需求">配件端（固件）需求</a></li>
+      <li><a href="#06-数据需求">数据需求</a></li>
+      <li><a href="#07-非功能需求与-slo">非功能需求与 SLO</a></li>
+      <li><a href="#08-埋点与指标口径">埋点与指标口径</a></li>
+      <li><a href="#09-里程碑与验收出口">里程碑与验收出口</a></li>
+      <li><a href="#10-依赖-风险与开放问题">依赖、风险与开放问题</a></li>
+    </ol>
+  </nav>
+</header>
+
+<section>
+<h2 id="01-背景与目标"><span class="no">01</span>背景与目标</h2>
+<h3 id="1-1-问题">1.1 问题</h3>
+<ul>
+<li>激光加工产生烟雾与异味，净化器是刚需配件，但当前净化器与主机没有任何通信。用户开始加工前要手动开净化器、手动调档，加工结束忘记关的情况普遍，滤芯白白消耗。</li>
+<li>滤芯寿命目前靠「用了多久」估算，与实际风量、材料无关。用户要么换早了浪费，要么换晚了净化效果差、味道大。滤芯是 BL2 最重要的耗材收入，提醒不准直接影响复购率。</li>
+<li>灭火器、烟雾传感器这类安全配件触发后没有任何记录。一次灭火事件发生了什么、主机当时在做什么、有没有推送到用户，都无法回答。这既是安全问题也是售后争议的来源。</li>
+<li>配件连带率低：用户买主机不一定买配件，因为看不到「买了配件会更省心」的具体价值。联动是配件价值最直观的体现。</li>
+</ul>
+<h3 id="1-2-目标">1.2 目标</h3>
+<ol>
+<li><strong>联动</strong>：主机开始作业 3 秒内净化器自动启动并按材料调档，作业结束后延时关闭；云端不可达时本地联动照常工作。</li>
+<li><strong>寿命</strong>：滤芯健康度按累计风量加权计算，剩余寿命误差 ≤ 15%，到阈值提前提醒，复购入口交给 BL3 / BL4。</li>
+<li><strong>留痕</strong>：灭火器触发、烟雾超阈值作为安全事件进入告警链路，推送用户并与主机 SN、当时任务关联留痕。</li>
+<li><strong>底座复用</strong>：配件不新增任何设备到云的通道，用与主机相同的证书、Topic、影子、指令模型，只多一层配对关系。</li>
+</ol>
+<h3 id="1-3-北极星与护栏指标">1.3 北极星与护栏指标</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>定义</th>
+<th>目标</th>
+<th>类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>配件连带率</td>
+<td>绑定了至少一个联网配件的主机 / 联网主机</td>
+<td>首年 ≥ 25%</td>
+<td>北极星</td>
+</tr>
+<tr>
+<td>滤芯复购率</td>
+<td>收到寿命提醒后 60 天内复购的用户 / 收到提醒的用户</td>
+<td>≥ 30%</td>
+<td>北极星</td>
+</tr>
+<tr>
+<td>联动成功率</td>
+<td>主机 JOB_START 后 3 秒内净化器进入运行态的次数 / JOB_START 次数（已配对）</td>
+<td>≥ 98%</td>
+<td>护栏</td>
+</tr>
+<tr>
+<td>联动延迟 P99</td>
+<td>主机事件时间 → 净化器 reported 运行态</td>
+<td>&lt; 3 s</td>
+<td>护栏</td>
+</tr>
+<tr>
+<td>滤芯寿命预测误差</td>
+<td>预测剩余小时与实际更换时剩余小时之差 / 额定寿命</td>
+<td>≤ 15%</td>
+<td>护栏</td>
+</tr>
+<tr>
+<td>灭火事件触达 P99</td>
+<td>配件事件时间 → App 推送到达</td>
+<td>&lt; 3 s（与 BL1 同口径）</td>
+<td>护栏</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="02-用户-场景与用户故事"><span class="no">02</span>用户、场景与用户故事</h2>
+<h3 id="2-1-目标用户">2.1 目标用户</h3>
+<ul>
+<li><strong>家庭创客</strong>：机器在室内或阳台，最在意烟味；买了净化器但经常忘开忘关；希望「不用管」。</li>
+<li><strong>小微工作室</strong>：一天十几个任务，净化器几乎全天开着，滤芯消耗快，关心「什么时候该换、能不能省」。</li>
+<li><strong>已购灭火器的安全敏感用户</strong>：为离机操作买了灭火配件，希望真出事时不只是灭火，还要立刻知道、事后有据可查。</li>
+</ul>
+<h3 id="2-2-核心用户故事">2.2 核心用户故事</h3>
+<div class="story"><b>US-1 不用管的净化器</b> 作为家庭创客，我希望按下开始加工后净化器自己开、自己调档、加工完过几分钟自己关，这样我不用记着这件事，也不会因为忘关白白耗滤芯。</div>
+<div class="story"><b>US-2 材料不同风量不同</b> 作为工作室用户，我希望切亚克力时净化器自动开大档、刻木头时开小档，这样既能压住味道又不浪费滤芯。</div>
+<div class="story"><b>US-3 滤芯快到寿命提前说</b> 作为用户，我希望滤芯还剩两周左右时收到提醒并能一键下单，而不是等味道大了才发现该换了。</div>
+<div class="story"><b>US-4 云挂了也得转</b> 作为用户，我希望家里断网时净化器仍然跟着主机启停，联网只是让它更聪明，不联网不能让它变傻。</div>
+<div class="story"><b>US-5 灭火了要告诉我</b> 作为离机操作的用户，我希望灭火器触发时手机立刻收到强提醒，并能看到当时主机在做什么、灭火器什么时候触发的。</div>
+<div class="story"><b>US-6 配件也要能升级</b> 作为用户，我希望净化器固件像主机一样自动升级并且升级失败会自己恢复，不用我操心。</div>
+
+
+</section>
+<section>
+<h2 id="03-范围-首迭代做什么-不做什么"><span class="no">03</span>范围：首迭代做什么、不做什么</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>首迭代（P0 标记）范围内</th>
+<th>明确不做（留给后续）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>净化器 1 款作为试点配件接入：一机一证、影子、事件、指令、OTA 全部复用 BL1</td>
+<td>灭火器、排烟风扇接入（P1，等硬件）</td>
+</tr>
+<tr>
+<td>配对：App 内把净化器与主机配对，一台净化器同时只配对一台主机</td>
+<td>一台净化器服务多台主机的编排（P2）</td>
+</tr>
+<tr>
+<td>云端联动规则：JOB_START → 开机调档；JOB_DONE / JOB_FAIL → 延时关闭；档位按材料映射表</td>
+<td>用户自定义联动规则编辑器（P2）</td>
+</tr>
+<tr>
+<td>本地联动兜底：净化器固件接收主机局域网 / 蓝牙广播信号启停</td>
+<td>第三方配件接入协议（P2）</td>
+</tr>
+<tr>
+<td>灭火事件码与烟雾超阈值进安全告警链路，关联主机 SN 与 job_id</td>
+<td>灭火器自动补给提醒（P1）</td>
+</tr>
+<tr>
+<td>滤芯运行数据上报：风机转速、运行时长、压差</td>
+<td>滤芯寿命计算与提醒（P1，需数据积累）</td>
+</tr>
+<tr>
+<td>配件 OTA 复用 ota-svc，独立 product_key 与批次</td>
+<td>主机与配件固件联合发布（P2）</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="04-功能需求"><span class="no">04</span>功能需求</h2>
+<p>编号 FR-2xx，避免与 BL1（FR-01 到 FR-32）、BL4（FR-4xx）冲突。每条给需求、验收标准与平台能力。</p>
+<h3 id="4-1-配件接入与配对">4.1 配件接入与配对</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+<th>平台能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-201 <span class="f p0">P0</span></td>
+<td>净化器作为独立设备激活、认证、上线：product_key=ACC_PURIFIER，一机一证，Topic 与主机同规则</td>
+<td>复用 BL1 FR-01 / FR-02 验收；配网到 App 显示在线 ≤ 30 s</td>
+<td>bootstrap-svc、auth-svc、ACL、device 表</td>
+</tr>
+<tr>
+<td>FR-202 <span class="f p0">P0</span></td>
+<td>配对：用户在 App 选择一台主机与一台净化器建立配对；一台净化器同一时刻只能配对一台主机，一台主机可配对多个不同类型配件</td>
+<td>重复配对幂等；换主机时旧配对自动解除并留历史；解除后 5 s 内联动停止</td>
+<td>accessory_pairing 部分唯一索引</td>
+</tr>
+<tr>
+<td>FR-203 <span class="f p0">P0</span></td>
+<td>配对关系随主机绑定走：主机解绑或转让时其全部配对同时解除</td>
+<td>主机 unbound_at 写入后配对 unpaired_at 同事务写入</td>
+<td>device_binding 解绑传导</td>
+</tr>
+<tr>
+<td>FR-204 <span class="f p1">P1</span></td>
+<td>配件也出现在 App 设备列表，卡片显示在线、运行态、档位、滤芯健康度</td>
+<td>数据新鲜度 ≤ 30 s</td>
+<td>BL4 FR-402 复用，deviceapi GET /shadow</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-2-云端联动">4.2 云端联动</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+<th>平台能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-211 <span class="f p0">P0</span></td>
+<td>主机 JOB_START 或 work_state 进入 2（作业）→ 已配对净化器 desired {power_on: true, fan_level: L}，L 由材料档位映射表决定（无材料信息用默认档）</td>
+<td>联动延迟 P99 &lt; 3 s；联动成功率 ≥ 98%</td>
+<td>accessory-svc 规则引擎消费 iot.up.event.* 与影子；deviceapi PATCH /desired</td>
+</tr>
+<tr>
+<td>FR-212 <span class="f p0">P0</span></td>
+<td>主机 JOB_DONE / JOB_FAIL / work_state 回到 0 → 延时 T 后 desired {power_on: false}；延时内主机再开始作业则取消关闭</td>
+<td>默认 T = 180 s，用户可在 App 调 60 到 600 s；取消关闭正确</td>
+<td>规则引擎定时器，linkage_rule.off_delay_s</td>
+</tr>
+<tr>
+<td>FR-213 <span class="f p0">P0</span></td>
+<td>材料档位映射表云端可配：material_id → fan_level，无映射用 product 默认；映射表随参数库版本化发布</td>
+<td>映射变更 10 min 内生效</td>
+<td>linkage_rule 表；复用 param-svc 发布纪律</td>
+</tr>
+<tr>
+<td>FR-214 <span class="f p0">P0</span></td>
+<td>联动可关闭：用户在 App 对某配对关闭「自动联动」，关闭后云端不再下发 desired，本地兜底不受影响</td>
+<td>关闭后 JOB_START 不产生 desired 写入</td>
+<td>accessory_pairing.linkage_enabled</td>
+</tr>
+<tr>
+<td>FR-215 <span class="f p0">P0</span></td>
+<td>联动留痕：每次云端联动写审计（触发事件、目标配件、下发的 desired、结果）；用户在 App 可查</td>
+<td>审计 100% 落库</td>
+<td>linkage_audit 表</td>
+</tr>
+<tr>
+<td>FR-216 <span class="f p1">P1</span></td>
+<td>主机安全事件（FLAME_DETECTED 等）→ 净化器立即最大档运行 10 分钟（排烟）；灭火器配件收到主机火焰事件不自动触发（灭火由传感器本地决定）</td>
+<td>火焰事件后净化器 3 s 内最大档</td>
+<td>规则引擎安全规则分支</td>
+</tr>
+<tr>
+<td>FR-217 <span class="f p2">P2</span></td>
+<td>用户自定义联动规则（条件 → 动作）编辑器</td>
+<td>—</td>
+<td>规则 DSL</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-3-本地联动兜底">4.3 本地联动兜底</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+<th>平台能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-221 <span class="f p0">P0</span></td>
+<td>主机作业态通过局域网组播或蓝牙广播「作业信号」，净化器固件收到即启动默认档，信号停止后延时关闭</td>
+<td>断网台架测试：主机开始作业 3 s 内净化器启动</td>
+<td>固件（主机 + 净化器）</td>
+</tr>
+<tr>
+<td>FR-222 <span class="f p0">P0</span></td>
+<td>云端联动与本地联动并存时以「更强」为准：任一路径要求开机即开机；档位取较大值；关闭需两路径都允许</td>
+<td>云端下发小档、本地默认大档时净化器运行大档</td>
+<td>净化器固件仲裁逻辑</td>
+</tr>
+<tr>
+<td>FR-223 <span class="f p0">P0</span></td>
+<td>净化器 reported 上报当前运行态与「触发来源」(cloud / local / manual)，云端据此统计本地兜底触发次数</td>
+<td>reported.trigger_source 字段存在</td>
+<td>物模型</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-4-灭火与烟雾安全事件">4.4 灭火与烟雾安全事件</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+<th>平台能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-231 <span class="f p0">P0</span></td>
+<td>新增安全事件码 FIRE_SUPPRESSED（灭火器触发）、SMOKE_HIGH（烟雾浓度超阈值）加入 SafetyCodes，走 alarm-svc 独立消费组，级别 critical</td>
+<td>事件 → 推送 P99 &lt; 3 s；重复上报 5 min squelch</td>
+<td>envelope.SafetyCodes、alarm-svc</td>
+</tr>
+<tr>
+<td>FR-232 <span class="f p0">P0</span></td>
+<td>配件安全事件关联主机：告警详情显示配对主机 SN、当时主机 work_state、进行中的 job_id</td>
+<td>告警记录含 paired_sn 与 job_id</td>
+<td>accessory-svc 富化，alarm 表扩展或关联表</td>
+</tr>
+<tr>
+<td>FR-233 <span class="f p0">P0</span></td>
+<td>灭火事件同时触发主机停机指令（stop）与净化器最大档；主机端侧自身火焰检测仍是第一道，云端指令是第二道</td>
+<td>灭火事件后 2 s 内主机收到 stop</td>
+<td>deviceapi POST /cmd source=system</td>
+</tr>
+<tr>
+<td>FR-234 <span class="f p1">P1</span></td>
+<td>灭火器触发后进入「需检查」状态，App 显示更换 / 复位指引；复位前再次触发事件按不同码上报</td>
+<td>状态机 armed → triggered → reset</td>
+<td>物模型属性 extinguisher_state</td>
+</tr>
+<tr>
+<td>FR-235 <span class="f p1">P1</span></td>
+<td>烟雾浓度持续超阈值但无火焰：推送「通风不足」提醒（非安全通道），并让净化器最大档</td>
+<td>与 SMOKE_HIGH 安全码分级：浓度阈值分两档</td>
+<td>alert-svc 非安全通道</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-5-滤芯寿命">4.5 滤芯寿命</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+<th>平台能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-241 <span class="f p0">P0</span></td>
+<td>净化器上报：fan_rpm、fan_level、run_seconds（累计）、pressure_diff（压差）、filter_installed_at</td>
+<td>字段进物模型；小时级降采样</td>
+<td>telemetry 超级表标签 product_key 区分；telemetry_1h 流</td>
+</tr>
+<tr>
+<td>FR-242 <span class="f p1">P1</span></td>
+<td>滤芯健康度 = 1 − 累计等效风量 / 额定风量，等效风量按档位风量系数累加，压差超阈值时额外折损；写 consumable_health(part='filter')</td>
+<td>与实验室实测寿命误差 ≤ 15%</td>
+<td>accessory-svc 每小时批计算，consumable_health 表（BL1 预留）</td>
+</tr>
+<tr>
+<td>FR-243 <span class="f p1">P1</span></td>
+<td>健康度 ≤ 20% 推送提醒（非安全通道，可关闭），≤ 5% 每周提醒一次；提醒带一键复购入口（BL3 / BL4 承载）</td>
+<td>提醒不重复；复购点击进埋点</td>
+<td>alert-svc；BL3 复购接口</td>
+</tr>
+<tr>
+<td>FR-244 <span class="f p1">P1</span></td>
+<td>更换滤芯：用户在 App 或净化器上确认更换 → filter_installed_at 重置，健康度回 100%</td>
+<td>重置后累计风量清零</td>
+<td>desired filter_reset → reported</td>
+</tr>
+<tr>
+<td>FR-245 <span class="f p2">P2</span></td>
+<td>滤芯识别：NFC / 二维码识别官方滤芯，非官方滤芯不计算寿命只提示</td>
+<td>—</td>
+<td>固件 + 物模型</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-6-配件-ota">4.6 配件 OTA</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+<th>平台能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-251 <span class="f p0">P0</span></td>
+<td>净化器固件走 ota-svc 同一套灰度、熔断、双人审批、A/B 回滚；独立 product_key 批次</td>
+<td>复用 BL1 FR-21 到 FR-24 验收</td>
+<td>ota-svc</td>
+</tr>
+<tr>
+<td>FR-252 <span class="f p0">P0</span></td>
+<td>配件升级只在配对主机空闲且配件本身空闲时进行</td>
+<td>主机作业中配件不升级</td>
+<td>ota policy.idle_only 扩展为「配对主机也空闲」</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="05-配件端-固件-需求"><span class="no">05</span>配件端（固件）需求</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DR-201 <span class="f p0">P0</span> 红线</td>
+<td>与主机相同的三件套：重连退避、一机一证、A/B 双分区</td>
+<td>BL1 DR-01 到 DR-03 对配件同样不可事后补救</td>
+</tr>
+<tr>
+<td>DR-202 <span class="f p0">P0</span> 红线</td>
+<td>本地联动接收：局域网组播或蓝牙广播的主机作业信号，无云也能启停</td>
+<td>没有它云端联动就是单点</td>
+</tr>
+<tr>
+<td>DR-203 <span class="f p0">P0</span></td>
+<td>联动仲裁：cloud / local / manual 三来源取「更强」，reported.trigger_source 上报来源</td>
+<td>见 FR-222</td>
+</tr>
+<tr>
+<td>DR-204 <span class="f p0">P0</span></td>
+<td>安全事件本地闭环：灭火器触发 / 烟雾超阈值由配件本地判定并即时上报 QoS1，不依赖云</td>
+<td>与主机 DR-04 同一原则</td>
+</tr>
+<tr>
+<td>DR-205 <span class="f p0">P0</span></td>
+<td>心跳分层：空闲 60 s，运行态 0.2 Hz；上报 fan_rpm、fan_level、run_seconds、pressure_diff</td>
+<td>与主机同纪律</td>
+</tr>
+<tr>
+<td>DR-206 <span class="f p0">P0</span></td>
+<td>desired 字段：power_on、fan_level、filter_reset；应用后在下一帧回报</td>
+<td>影子收敛</td>
+</tr>
+<tr>
+<td>DR-207 <span class="f p1">P1</span></td>
+<td>滤芯更换检测：滤芯仓开合传感器触发 filter_installed_at 候选，需用户确认</td>
+<td>减少误重置</td>
+</tr>
+<tr>
+<td>DR-208 <span class="f p1">P1</span></td>
+<td>灭火器状态机 armed / triggered / reset，复位需物理操作</td>
+<td>防止云端误复位</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="06-数据需求"><span class="no">06</span>数据需求</h2>
+<h3 id="6-1-物模型-净化器-acc_purifier-v1">6.1 物模型：净化器 ACC_PURIFIER v1</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>项</th>
+<th>类型 / 取值</th>
+<th>上报</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>属性</td>
+<td>power_on</td>
+<td>bool</td>
+<td>变更即报</td>
+</tr>
+<tr>
+<td>属性</td>
+<td>fan_level</td>
+<td>0 关 / 1 低 / 2 中 / 3 高 / 4 最大</td>
+<td>变更即报</td>
+</tr>
+<tr>
+<td>属性</td>
+<td>fan_rpm</td>
+<td>int</td>
+<td>周期</td>
+</tr>
+<tr>
+<td>属性</td>
+<td>run_seconds</td>
+<td>累计运行秒，int</td>
+<td>周期</td>
+</tr>
+<tr>
+<td>属性</td>
+<td>pressure_diff</td>
+<td>Pa，float</td>
+<td>周期</td>
+</tr>
+<tr>
+<td>属性</td>
+<td>filter_installed_at</td>
+<td>Unix 秒</td>
+<td>上线时 + 变更</td>
+</tr>
+<tr>
+<td>属性</td>
+<td>trigger_source</td>
+<td>cloud / local / manual</td>
+<td>变更即报</td>
+</tr>
+<tr>
+<td>属性</td>
+<td>paired_sn</td>
+<td>配对主机 SN（desired 下发，配件回报）</td>
+<td>变更即报</td>
+</tr>
+<tr>
+<td>事件</td>
+<td>安全事件</td>
+<td>SMOKE_HIGH、FIRE_SUPPRESSED（灭火器型号）</td>
+<td>QoS1 即时</td>
+</tr>
+<tr>
+<td>事件</td>
+<td>系统事件</td>
+<td>FILTER_REPLACED、CMD_ACK、OTA_PROGRESS、HEARTBEAT</td>
+<td>即时 / 周期</td>
+</tr>
+<tr>
+<td>服务</td>
+<td>self_check、stop</td>
+<td>RRPC</td>
+<td>只读或可逆</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="6-2-新增表">6.2 新增表</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>库</th>
+<th>表</th>
+<th>关键列</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分片库</td>
+<td>accessory_pairing</td>
+<td>id, host_sn, acc_sn, acc_type, linkage_enabled, off_delay_s, paired_at, unpaired_at</td>
+<td>部分唯一索引 (acc_sn) WHERE unpaired_at IS NULL</td>
+</tr>
+<tr>
+<td>全局库</td>
+<td>linkage_rule</td>
+<td>product_key, material_id, fan_level, version</td>
+<td>材料档位映射，随参数库版本化</td>
+</tr>
+<tr>
+<td>分片库</td>
+<td>linkage_audit</td>
+<td>id, host_sn, acc_sn, trigger, action JSONB, result, created_at</td>
+<td>按月分区 180 天</td>
+</tr>
+<tr>
+<td>分片库</td>
+<td>filter_life</td>
+<td>acc_sn, installed_at, eq_air_volume, health, predicted_eol_at, updated_at</td>
+<td>每小时批更新；health 同步写 consumable_health(part='filter')</td>
+</tr>
+<tr>
+<td>分片库</td>
+<td>alarm 扩展</td>
+<td>paired_sn, job_id（或独立关联表 alarm_context）</td>
+<td>配件告警关联主机</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="6-3-数据归属与保留">6.3 数据归属与保留</h3>
+<ul>
+<li>配件遥测与事件：TDengine 同一超级表，标签 product_key 区分；KEEP 90 天；小时级降采样长期。</li>
+<li>配对、联动审计、滤芯寿命：PostgreSQL 分片库，只含 SN。</li>
+<li>灭火事件留痕：alarm 表长期保留（安全复核依据）。</li>
+<li>所有配件数据只含 SN，与用户的关联仍只通过主机的 device_binding。</li>
+</ul>
+
+</section>
+<section>
+<h2 id="07-非功能需求与-slo"><span class="no">07</span>非功能需求与 SLO</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>联动延迟</td>
+<td>主机事件 → 净化器 reported 运行态 P99 &lt; 3 s</td>
+</tr>
+<tr>
+<td>联动可用性</td>
+<td>云端规则引擎 99.9%；不可用时本地兜底 100% 接管</td>
+</tr>
+<tr>
+<td>安全事件</td>
+<td>FIRE_SUPPRESSED / SMOKE_HIGH 触达 P99 &lt; 3 s，与 BL1 同 SLO</td>
+</tr>
+<tr>
+<td>滤芯计算</td>
+<td>每小时批 ≤ 5 min 完成；预测误差 ≤ 15%</td>
+</tr>
+<tr>
+<td>配对一致性</td>
+<td>配对 / 解除 5 s 内生效于规则引擎</td>
+</tr>
+<tr>
+<td>规模</td>
+<td>配件数按主机连带率 25% 估：250 万台，遥测量增加约 8%（心跳为主）</td>
+</tr>
+<tr>
+<td>隐私</td>
+<td>配件遥测只含 SN；配对表只含 SN</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="08-埋点与指标口径"><span class="no">08</span>埋点与指标口径</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>埋点 / 数据源</th>
+<th>口径说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>配件连带率</td>
+<td>accessory_pairing 有效配对的 host_sn 去重 / device_binding 有效主机</td>
+<td>只算联网并配对的配件</td>
+</tr>
+<tr>
+<td>联动成功率与延迟</td>
+<td>linkage_audit.created_at → 净化器影子 power_on=true 的 updated_at</td>
+<td>只统计 linkage_enabled 的配对</td>
+</tr>
+<tr>
+<td>本地兜底触发比例</td>
+<td>reported.trigger_source=local 的启动次数 / 总启动次数</td>
+<td>比例高说明云端联动慢或不可用</td>
+</tr>
+<tr>
+<td>滤芯复购率</td>
+<td>提醒推送回执 → BL3 订单归因 60 天窗口</td>
+<td>与 BL3 共用口径</td>
+</tr>
+<tr>
+<td>寿命预测误差</td>
+<td>FILTER_REPLACED 时 predicted 剩余 vs 实际（用户确认更换原因为「到寿命」）</td>
+<td>排除提前更换</td>
+</tr>
+<tr>
+<td>灭火事件触达 P99</td>
+<td>events.ts → alarm.notified_at → 推送回执</td>
+<td>与 BL1 三段口径一致</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section>
+<h2 id="09-里程碑与验收出口"><span class="no">09</span>里程碑与验收出口</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>时长</th>
+<th>交付</th>
+<th>决策门</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>迭代 1</td>
+<td>2 周</td>
+<td>净化器接入（复用 BL1 链路）、配对、accessory-svc 规则引擎（JOB_START / DONE 联动）、联动审计、模拟器配件模式</td>
+<td>50 台主机 + 50 台净化器模拟配对，联动延迟 P99 &lt; 3 s</td>
+</tr>
+<tr>
+<td>迭代 2</td>
+<td>2 周</td>
+<td>FIRE_SUPPRESSED / SMOKE_HIGH 进 SafetyCodes 与 alarm-svc，告警关联主机；灭火事件触发主机 stop；材料档位映射表</td>
+<td>灭火事件端到端 P99 &lt; 3 s；关联字段正确</td>
+</tr>
+<tr>
+<td>迭代 3</td>
+<td>2 周</td>
+<td>滤芯运行数据上报与降采样；filter_life 批计算；健康度写 consumable_health；配件 OTA 批次</td>
+<td>实验室 3 组滤芯寿命对照误差 ≤ 15%</td>
+</tr>
+<tr>
+<td>真机</td>
+<td>递进</td>
+<td>5 套主机 + 净化器工程机 → dogfood → beta</td>
+<td>本地兜底断网台架测试通过</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout"><b>P0 验收清单</b>：① 配对与解除 5 s 内生效于联动；② 联动延迟 P99 &lt; 3 s 实测；③ 断网台架：本地兜底启停正常；④ 灭火事件推送 P99 &lt; 3 s 且告警含主机 SN 与 job_id；⑤ 关闭联动后无 desired 写入；⑥ 净化器 OTA 走灰度熔断且主机作业中不升级。</div>
+
+</section>
+<section>
+<h2 id="10-依赖-风险与开放问题"><span class="no">10</span>依赖、风险与开放问题</h2>
+<h3 id="10-1-依赖">10.1 依赖</h3>
+<ul>
+<li><strong>BL1 平台</strong>：接入、影子、事件、指令、OTA 五条链路接口冻结；SafetyCodes 可扩展。</li>
+<li><strong>配件固件团队</strong>：DR-201 到 DR-206 进净化器固件排期，本地联动接收是关键路径。</li>
+<li><strong>主机固件团队</strong>：作业信号广播（局域网组播或蓝牙）。</li>
+<li><strong>BL4 App</strong>：配对界面、配件卡片、联动开关、滤芯提醒。</li>
+<li><strong>BL3</strong>：滤芯复购入口与订单归因。</li>
+<li><strong>硬件</strong>：灭火器、烟雾传感器型号与通信方式确认。</li>
+</ul>
+<h3 id="10-2-风险与对策">10.2 风险与对策</h3>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>风险</th>
+<th>影响</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>云端联动误关净化器（延时关闭逻辑 bug）导致作业中无排烟</td>
+<td>用户吸入烟雾、投诉</td>
+<td>关闭需云端与本地都允许；本地信号存在时云端关闭无效；规则引擎只发「建议关」</td>
+</tr>
+<tr>
+<td>本地联动信号被邻居主机误触发</td>
+<td>净化器乱开</td>
+<td>广播信号带主机 SN，净化器只响应配对主机</td>
+</tr>
+<tr>
+<td>滤芯寿命算法误差大</td>
+<td>复购提醒不准，用户不信任</td>
+<td>先用实验室 3 组对照校准系数；提醒文案给区间而非精确天数</td>
+</tr>
+<tr>
+<td>灭火事件误报（烟雾传感器被切割烟雾触发）</td>
+<td>短信轰炸</td>
+<td>SMOKE_HIGH 分两档：高档进安全码，低档走非安全提醒；阈值可 OTA 调参</td>
+</tr>
+<tr>
+<td>配件数量翻倍带来的心跳流量</td>
+<td>容量</td>
+<td>配件空闲心跳 120 s（比主机更长），可 OTA 调参</td>
+</tr>
+<tr>
+<td>配对关系与主机绑定不同步</td>
+<td>转让后原主机仍控制净化器</td>
+<td>解绑事务内传导配对解除</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="10-3-开放问题">10.3 开放问题</h3>
+<ol>
+<li>本地联动用局域网组播还是蓝牙广播？组播依赖同一 Wi-Fi，蓝牙依赖距离；建议双通道，固件团队评估成本。</li>
+<li>延时关闭默认 180 s 是否合适？工作室连续任务间隔常小于 3 分钟，建议按用户类型给不同默认。</li>
+<li>FIRE_SUPPRESSED 是否同时触发主机 stop？主机端侧火焰检测通常已先停机，云端 stop 是冗余；需确认不会造成二次干扰。</li>
+<li>滤芯额定风量与档位风量系数由供应商给出还是实验室标定？</li>
+<li>灭火器型号与复位方式（物理复位还是更换）决定 FR-234 状态机。</li>
+</ol></section>
+
+<footer>
+  <p>配件与安全生态 AIoT PRD v0.1 · BL2 复用 BL1 五条链路，只新增配对与联动规则引擎；本地联动兜底是唯一不可协商的约束，云端联动只做增强与留痕。待校准项：本地联动通道选型、滤芯寿命系数标定、灭火器状态机。</p>
+</footer>
+</div>
+
+</body>
+</html>

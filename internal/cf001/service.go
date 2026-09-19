@@ -31,10 +31,19 @@ type Service struct {
 	Now func() time.Time
 	// NextSeq 返回某天的下一个流水号；默认 Redis INCR sn:seq:{yymmdd} EX 2 天。
 	NextSeq func(ctx context.Context, yymmdd string) (int64, error)
+
+	// 重放防护（freshness.go）：默认 RedisNonceStore + 5 分钟窗口；SkipFreshness 仅开发。
+	Nonces          NonceStore
+	FreshnessWindow time.Duration
+	SkipFreshness   bool
+	C               *Counters
 }
 
 func NewService(db *pgxpool.Pool, rdb *redis.Client, key *rsa.PrivateKey) *Service {
-	s := &Service{DB: db, RDB: rdb, Key: key, Now: time.Now}
+	s := &Service{DB: db, RDB: rdb, Key: key, Now: time.Now, FreshnessWindow: DefaultFreshnessWindow, C: &Counters{}}
+	if rdb != nil {
+		s.Nonces = &RedisNonceStore{RDB: rdb}
+	}
 	s.NextSeq = func(ctx context.Context, yymmdd string) (int64, error) {
 		k := "sn:seq:" + yymmdd
 		n, err := rdb.Incr(ctx, k).Result()
@@ -142,8 +151,22 @@ func (s *Service) Sign(ctx context.Context, orderNo, line, payloadB64 string, id
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrBadParam, err)
 	}
+	// 新鲜度与 nonce 去重：在任何数据库操作之前，重放请求不该碰到配额事务
+	if err := s.checkReplay(ctx, p); err != nil {
+		return nil, err
+	}
 	ids.OrderNo, ids.Line, ids.Digest = orderNo, line, p.Digest
-	return s.SignDigest(ctx, ids)
+	r, err := s.SignDigest(ctx, ids)
+	if err == nil && s.C != nil {
+		if r.Existing {
+			s.C.Existing.Add(1)
+		} else {
+			s.C.Signed.Add(1)
+		}
+	} else if errors.Is(err, ErrNoQuota) && s.C != nil {
+		s.C.NoQuota.Add(1)
+	}
+	return r, err
 }
 
 // SignDigest 执行幂等检查 + 配额事务 + SN 生成 + PSS 签名。

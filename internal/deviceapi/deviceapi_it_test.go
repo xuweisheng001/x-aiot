@@ -79,3 +79,33 @@ func TestPGStoreAndAuditIT(t *testing.T) {
 		t.Fatalf("acked_at=%v err=%v", acked, err)
 	}
 }
+
+// 打真实 PG：ensure_cmd_audit_partitions(3) 后未来 3 个月分区存在且再次调用幂等（返回 0）。
+func TestEnsureAuditPartitionsIT(t *testing.T) {
+	if !config.Integration() {
+		t.Skip("IOT_IT not set")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	pool := config.MustPG(ctx)
+	defer pool.Close()
+	st := NewPGStore(pool)
+	if _, err := st.EnsureAuditPartitions(ctx, 3); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i <= 3; i++ {
+		var exists bool
+		err := pool.QueryRow(ctx, `
+SELECT EXISTS (
+  SELECT 1 FROM pg_inherits h JOIN pg_class c ON c.oid = h.inhrelid
+  JOIN pg_class p ON p.oid = h.inhparent JOIN pg_namespace n ON n.oid = p.relnamespace
+  WHERE n.nspname='iot_shard' AND p.relname='cmd_audit'
+    AND c.relname = 'cmd_audit_' || to_char(date_trunc('month', now()) + make_interval(months => $1), 'YYYYMM'))`, i).Scan(&exists)
+		if err != nil || !exists {
+			t.Fatalf("partition month+%d missing (err=%v)", i, err)
+		}
+	}
+	if n, err := st.EnsureAuditPartitions(ctx, 3); err != nil || n != 0 {
+		t.Fatalf("second call should be idempotent: n=%d err=%v", n, err)
+	}
+}

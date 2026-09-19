@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --ink: #1c2733;
+  --muted: #56687a;
+  --accent: #0b7285;
+  --accent-ink: #085d6e;
+  --accent-soft: rgba(11, 114, 133, 0.08);
+  --warn: #b4540a;
+  --warn-soft: rgba(180, 84, 10, 0.07);
+  --line: #dbe3e9;
+  --code-bg: #eef3f5;
+  --code-ink: #14424c;
+  --chip-ink: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161b;
+    --surface: #171f26;
+    --ink: #e3ebf0;
+    --muted: #93a5b2;
+    --accent: #4fc0d3;
+    --accent-ink: #6fd0e0;
+    --accent-soft: rgba(79, 192, 211, 0.1);
+    --warn: #e8964e;
+    --warn-soft: rgba(232, 150, 78, 0.09);
+    --line: #2a3640;
+    --code-bg: #1d2830;
+    --code-ink: #a9d8e2;
+    --chip-ink: #0e1418;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10161b;
+  --surface: #171f26;
+  --ink: #e3ebf0;
+  --muted: #93a5b2;
+  --accent: #4fc0d3;
+  --accent-ink: #6fd0e0;
+  --accent-soft: rgba(79, 192, 211, 0.1);
+  --warn: #e8964e;
+  --warn-soft: rgba(232, 150, 78, 0.09);
+  --line: #2a3640;
+  --code-bg: #1d2830;
+  --code-ink: #a9d8e2;
+  --chip-ink: #0e1418;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  line-height: 1.85;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 5rem; }
+header { margin-bottom: 2.5rem; }
+.kicker {
+  font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin: 0 0 0.8rem;
+}
+h1 {
+  font-family: "Noto Serif SC", serif; font-weight: 900;
+  font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.25;
+  margin: 0 0 1rem; text-wrap: balance;
+}
+.lede { color: var(--muted); margin: 0; max-width: 40rem; }
+nav.toc {
+  margin: 2.2rem 0 0; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); padding: 1.1rem 1.3rem;
+}
+nav.toc p { margin: 0 0 0.5rem; font-size: 0.78rem; letter-spacing: 0.14em; color: var(--muted); font-weight: 700; }
+nav.toc ol {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.15rem 1.5rem;
+}
+nav.toc a { color: var(--ink); text-decoration: none; font-size: 0.93rem; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent-ink); }
+nav.toc li::before { content: counter(list-item, decimal-leading-zero) " "; color: var(--accent); font-family: "JetBrains Mono", monospace; font-size: 0.8rem; }
+section { margin-top: 3.5rem; }
+h2 {
+  font-family: "Noto Serif SC", serif; font-weight: 700;
+  font-size: 1.5rem; line-height: 1.4; margin: 0 0 0.4rem;
+  padding-top: 1.2rem; border-top: 2px solid var(--accent); text-wrap: balance;
+}
+h2 .no { font-family: "JetBrains Mono", monospace; font-size: 0.9rem; color: var(--accent); margin-right: 0.6em; font-weight: 600; }
+h3 {
+  font-weight: 700; font-size: 1.08rem; margin: 2rem 0 0.5rem; text-wrap: balance;
+}
+h3::before { content: "▸ "; color: var(--accent); }
+p { margin: 0.6rem 0; }
+.why { color: var(--muted); font-size: 0.92rem; margin-top: -0.1rem; }
+ul, ol { margin: 0.5rem 0 0.9rem; padding-left: 1.4rem; }
+li { margin: 0.3rem 0; }
+li::marker { color: var(--accent); }
+strong { font-weight: 700; }
+code {
+  font-family: "JetBrains Mono", "Menlo", monospace; font-size: 0.85em;
+  background: var(--code-bg); color: var(--code-ink);
+  padding: 0.1em 0.4em; border-radius: 4px;
+}
+pre {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0.8rem 0 1.2rem;
+}
+pre code { background: none; padding: 0; font-size: 0.84rem; line-height: 1.7; }
+.tablebox { overflow-x: auto; margin: 0.8rem 0 1.2rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.6; }
+th, td { text-align: left; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.8rem; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+.fix { border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0; }
+.fix b { color: var(--warn); }
+.callout {
+  border-left: 3px solid var(--accent); background: var(--accent-soft);
+  border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0;
+}
+.callout b { color: var(--accent-ink); }
+.f {
+  font-family: "JetBrains Mono", monospace; font-size: 0.68rem; font-weight: 600;
+  padding: 0.1em 0.55em; border-radius: 99px; white-space: nowrap;
+  vertical-align: 0.15em; margin-left: 0.5em; letter-spacing: 0.02em;
+}
+.f3 { background: var(--accent); color: var(--chip-ink); }
+.f2 { background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent); }
+.f1 { color: var(--muted); border: 1px solid var(--line); background: var(--surface); }
+td .f { margin-left: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.8rem 1.4rem; margin: 0.8rem 0 0; padding: 0; list-style: none; font-size: 0.88rem; color: var(--muted); }
+.legend li { margin: 0; }
+.qa { margin: 1.2rem 0; }
+.iq {
+  background: var(--accent-soft); border-radius: 10px 10px 10px 3px;
+  padding: 0.65rem 1rem; margin: 0.9rem 0 0.5rem; max-width: 92%;
+}
+.iq b { color: var(--accent-ink); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.ca {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px 10px 3px 10px;
+  padding: 0.65rem 1rem; margin: 0.5rem 0 0.5rem auto; max-width: 92%;
+}
+.ca b { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.note { color: var(--muted); font-size: 0.88rem; font-style: italic; margin: 0.4rem 0 1.1rem; padding-left: 1rem; border-left: 2px dashed var(--line); }
+footer { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+.meta{display:grid;grid-template-columns:6em 1fr;gap:.2rem 1rem;font-size:.92rem;border:1px solid var(--line);border-radius:8px;padding:.9rem 1.1rem;background:var(--surface);margin:1.2rem 0}
+.meta dt{color:var(--muted);font-weight:700}.meta dd{margin:0}
+h3 code{font-size:.8rem;vertical-align:.1em;margin-right:.2em}
+b.k{display:inline-block;color:var(--accent-ink);font-size:.78rem;letter-spacing:.1em;font-weight:700;margin-right:.5em;min-width:4.5em}
+td code{white-space:nowrap}
+section{margin-top:3rem}
+</style>
+</head>
+<body>
+<title>BL5 事故预推演</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<div class="wrap">
+<header>
+  <p class="kicker">Incident Pre-mortem · BL5 教育与 B 端</p>
+  <h1>线上事故预推演与处置方案</h1>
+  <p class="lede">BL5 试点上线前，沿组织租户、时段锁定、任务队列、批量 OTA、看板、订阅六条线推演 24 个最可能的线上事故：怎么触发、怎么传播、看哪个指标能第一时间发现、前 15 分钟做什么、之后怎么恢复、怎么根治、怎么演练。设备与平台侧见 BL1 预推演，入口与业务链路见 BL4 预推演。</p>
+  <ul class="legend">
+    <li><span class="f f3">S1</span> 安全链路失效 / 刷砖 / 停线，15 分钟内止血</li>
+    <li><span class="f f2">S2</span> 核心链路 ≥ 10% 设备不可用</li>
+    <li><span class="f f1">S3 / S4</span> 单链路降级 / 内部指标异常</li>
+  </ul>
+  <dl class="meta">
+    <dt>文档版本</dt><dd>v0.1 · 2026-09-18</dd>
+    <dt>目的</dt><dd>BL5 试点上线前，沿组织租户、时段锁定、任务队列、批量 OTA、看板、订阅六条线推演最可能的线上事故，每条给触发、传播、检测信号、止血、恢复、根治、演练</dd>
+    <dt>与其它预推演的关系</dt><dd>BL1（设备与平台）27 条、BL4（入口与业务链路）26 条全部适用于 BL5 的底层；本文只写 BL5 新增的 24 条。分级、处置四原则、临时关闭登记表沿用 BL1 §0 与 §10</dd>
+    <dt>编号</dt><dd>INC-5-xx</dd>
+  </dl>
+  <nav class="toc">
+    <p>目录</p>
+    <ol>
+      <li><a href="#1-事故清单总览">事故清单总览</a></li>
+      <li><a href="#2-租户与授权">租户与授权</a></li>
+      <li><a href="#3-看板">看板</a></li>
+      <li><a href="#4-时段锁定">时段锁定</a></li>
+      <li><a href="#5-任务队列">任务队列</a></li>
+      <li><a href="#6-批量-ota">批量 OTA</a></li>
+      <li><a href="#7-告警">告警</a></li>
+      <li><a href="#8-订阅与合规">订阅与合规</a></li>
+      <li><a href="#9-bl5-特有的临时关闭项模板">BL5 特有的临时关闭项模板</a></li>
+      <li><a href="#10-演练计划">演练计划</a></li>
+      <li><a href="#11-试点上线前必须补齐的能力">试点上线前必须补齐的能力</a></li>
+    </ol>
+  </nav>
+</header>
+
+<p><strong>BL5 事故的三个特征</strong></p>
+<ol>
+<li><strong>发生在学校</strong>。用户是老师和未成年学生，任何安全事故的后果与舆情都比家庭用户严重一个量级。禁用误伤安全是本文最高优先级。</li>
+<li><strong>一次影响一间教室或一所学校</strong>。个人用户的事故影响一台机器，组织用户的事故影响 12 台或 200 台，且发生在上课这个不可重来的时间窗。</li>
+<li><strong>锁是新的故障面</strong>。BL1 与 BL4 从未让云端有能力阻止机器工作。BL5 引入的 locked 状态既可能锁不住（违规），也可能锁死（教学中断），两个方向都要推演。</li>
+</ol>
+
+<h2 id="1-事故清单总览"><span class="no">01</span>事故清单总览</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>事故</th>
+<th>线</th>
+<th>级别</th>
+<th>第一检测信号</th>
+<th>止血时限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#inc-5-01-成员移除后仍可操作"><code>INC-5-01</code></a></td>
+<td>成员移除后仍可操作：授权缓存未失效</td>
+<td>租户</td>
+<td><span class="f f2">S2</span></td>
+<td>移除后 cmd_audit / lock_audit 出现该用户</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-02-个人绑定用户在组织归属后仍能下指令"><code>INC-5-02</code></a></td>
+<td>个人绑定用户在组织归属后仍能下指令</td>
+<td>租户</td>
+<td><span class="f f2">S2</span></td>
+<td>归属设备的 cmd_audit source=app 且 operator 非成员</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-03-租户越权"><code>INC-5-03</code></a></td>
+<td>租户越权：A 校成员看到 B 校设备与学生</td>
+<td>租户</td>
+<td><span class="f f3">S1</span></td>
+<td>单用户访问 org_id 数 &gt; 所属数；某路由 404 比例为 0</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-5-04-设备被误归属到别的组织"><code>INC-5-04</code></a></td>
+<td>设备被误归属到别的组织（SN 输错）</td>
+<td>租户</td>
+<td><span class="f f2">S2</span></td>
+<td>原个人用户收到「由组织管理」通知后投诉</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-5-05-看板批量影子打爆-redis-或-deviceapi"><code>INC-5-05</code></a></td>
+<td>看板批量影子打爆 Redis 或 deviceapi</td>
+<td>看板</td>
+<td><span class="f f1">S3</span></td>
+<td>deviceapi 批量接口延迟；Redis 命令数</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-06-看板显示与设备实际不一致"><code>INC-5-06</code></a></td>
+<td>看板显示与设备实际不一致（在线判定错）</td>
+<td>看板</td>
+<td><span class="f f1">S3</span></td>
+<td>抽样对账影子 updated_at</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-5-07-禁用误伤安全-s1"><code>INC-5-07</code></a></td>
+<td>禁用误伤安全：locked 下安全事件未停机或未告警</td>
+<td>锁定</td>
+<td><span class="f f3">S1</span></td>
+<td>禁用误伤安全率对账 &gt; 0；台架</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-5-08-上课时全站锁死无法解锁-s1"><code>INC-5-08</code></a></td>
+<td>上课时全站锁死无法解锁</td>
+<td>锁定</td>
+<td><span class="f f3">S1</span></td>
+<td>站点内 LOCKED_START_DENIED 在窗口内突增；老师求助</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-09-锁不住"><code>INC-5-09</code></a></td>
+<td>锁不住：窗口外大量 JOB_START</td>
+<td>锁定</td>
+<td><span class="f f2">S2</span></td>
+<td>时段外违规开机率 &gt; 1%</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-10-时区或夏令时错误"><code>INC-5-10</code></a></td>
+<td>时区或夏令时错误导致整站课表偏移 1 小时</td>
+<td>锁定</td>
+<td><span class="f f2">S2</span></td>
+<td>多站点同时在整点边界前后出现违规/锁死</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-11-临时解锁到期不回锁"><code>INC-5-11</code></a></td>
+<td>临时解锁到期不回锁</td>
+<td>锁定</td>
+<td><span class="f f2">S2</span></td>
+<td>reported.lock_state=2 超过 lock_expires_at 的设备数</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-12-课表下发风暴"><code>INC-5-12</code></a></td>
+<td>课表下发风暴：一次编辑触发 200 台 PATCH 与 MQTT</td>
+<td>锁定</td>
+<td><span class="f f1">S3</span></td>
+<td>deviceapi 写 QPS 尖峰；MQTT 下行积压</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-13-调度器重复下发-s1"><code>INC-5-13</code></a></td>
+<td>调度器重复下发同一任务到两台设备</td>
+<td>队列</td>
+<td><span class="f f3">S1</span></td>
+<td>同 item_id 两条 dispatched 审计；两台设备同 job_id</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-5-14-调度器双-leader-或无-leader"><code>INC-5-14</code></a></td>
+<td>调度器双 leader 或无 leader</td>
+<td>队列</td>
+<td><span class="f f2">S2</span></td>
+<td>scheduler_leader 计数 ≠ 1</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-15-任务下发到-locked-或作业中设备"><code>INC-5-15</code></a></td>
+<td>任务下发到 locked 或作业中设备</td>
+<td>队列</td>
+<td><span class="f f2">S2</span></td>
+<td>LOCKED_START_DENIED{source:cloud} 或 cmd_ack fail 突增</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-16-学生绕过审批"><code>INC-5-16</code></a></td>
+<td>学生绕过审批（自动批准白名单配置错）</td>
+<td>队列</td>
+<td><span class="f f2">S2</span></td>
+<td>approved_by=auto 比例 100%</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-5-17-队列文件-url-过期循环"><code>INC-5-17</code></a></td>
+<td>队列文件预签名 URL 过期导致设备下载失败循环</td>
+<td>队列</td>
+<td><span class="f f1">S3</span></td>
+<td>dispatched → skipped 比例上升，error 为下载类</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-18-批量-ota-在上课时间下发"><code>INC-5-18</code></a></td>
+<td>批量 OTA 在上课时间下发</td>
+<td>OTA</td>
+<td><span class="f f2">S2</span></td>
+<td>窗口外下发数 &gt; 0</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-19-批量-ota-打满校园带宽"><code>INC-5-19</code></a></td>
+<td>批量 OTA 打满校园带宽</td>
+<td>OTA</td>
+<td><span class="f f1">S3</span></td>
+<td>站点并发下载 &gt; 5；下载超时率</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-20-组织子批次绕过灰度"><code>INC-5-20</code></a></td>
+<td>组织子批次绕过灰度选了未到档固件</td>
+<td>OTA</td>
+<td><span class="f f2">S2</span></td>
+<td>子批次 firmware 的父批次档位 &lt; 10%</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-5-21-告警推送目标查询超时"><code>INC-5-21</code></a></td>
+<td>告警推送目标查询超时导致推送延迟</td>
+<td>告警</td>
+<td><span class="f f2">S2</span></td>
+<td>alarm_targets 延迟 P99 &gt; 500 ms；推送 P99 &gt; 3 s</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-5-22-告警推给了已离职老师"><code>INC-5-22</code></a></td>
+<td>告警推给了已离职老师</td>
+<td>告警</td>
+<td><span class="f f1">S3</span></td>
+<td>订阅表含已移除成员</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-5-23-订阅到期误伤课表与告警-p2-s1"><code>INC-5-23</code></a></td>
+<td>订阅到期误伤课表与告警（P2）</td>
+<td>订阅</td>
+<td><span class="f f3">S1</span></td>
+<td>到期组织的锁 / 告警接口 403</td>
+<td>立即回滚</td>
+</tr>
+<tr>
+<td><a href="#inc-5-24-学生数据超范围采集"><code>INC-5-24</code></a></td>
+<td>学生数据超范围采集</td>
+<td>合规</td>
+<td><span class="f f2">S2</span></td>
+<td>数据字典审计发现 org_member 或 queue_item 含额外字段</td>
+<td>24 h</td>
+</tr>
+</tbody>
+</table></div>
+
+<h2 id="2-租户与授权"><span class="no">02</span>租户与授权</h2>
+<h3 id="inc-5-01-成员移除后仍可操作"><code>INC-5-01</code> 成员移除后仍可操作</h3>
+<p><b class="k">触发</b>DELETE member 只写 removed_at，没有删 Redis <code>orgauth:{user}:{org}</code>；或多副本进程内缓存。</p>
+<p><b class="k">传播</b>离职老师 60 秒内仍能解锁、下指令、审批。若是被辞退的员工，60 秒足够做坏事。</p>
+<p><b class="k">检测信号</b>每日对账 lock_audit / cmd_audit / queue_item.approved_by 中操作时间晚于该用户 removed_at 的行。</p>
+<p><b class="k">止血</b>手动 <code>redis-cli del orgauth:{user}:{org}</code>；紧急时清空 orgauth:* 前缀（所有用户下一次请求回源 PG，短时压力可接受）。</p>
+<p><b class="k">根治</b>成员变更事务提交后同步 DEL；授权缓存只允许 Redis 不允许进程内；对账进每日任务。这是 BL4 INC-4-04 在组织维度的复现，同一根治。</p>
+
+<h3 id="inc-5-02-个人绑定用户在组织归属后仍能下指令"><code>INC-5-02</code> 个人绑定用户在组织归属后仍能下指令</h3>
+<p><b class="k">触发</b>BFF 个人视角的 <code>/devices/{sn}/cmd</code> 没有查 device_org；或 fleet-svc 的 arbiter 接口超时被当作放行。</p>
+<p><b class="k">传播</b>学校的机器被原来某个个人账号（如采购时用的老师私人账号）远程暂停或停止，课堂中断。</p>
+<p><b class="k">检测信号</b>归属设备的 cmd_audit 中 source=app 且 operator 不在 org_member。</p>
+<p><b class="k">止血</b>BFF 对 arbiter 超时改为 fail-closed（拒绝控制类动作，允许读）；登记。</p>
+<p><b class="k">根治</b>arbiter 判定结果随授权缓存一起缓存；device_org 变更时同时失效相关个人用户的缓存；控制类动作对归属设备默认拒绝，只有明确允许才放行。</p>
+
+<h3 id="inc-5-03-租户越权"><code>INC-5-03</code> 租户越权</h3>
+<p><b class="k">触发</b>新增路由忘挂 org 中间件；repo 层某条 SQL 漏了 org_id 条件；BFF 从请求体而非 token 取 user_id。</p>
+<p><b class="k">传播</b>A 校老师能看 B 校的设备状态、学生 user_id、队列文件缩略图，甚至解锁 B 校机器。涉及未成年人数据，是 BL5 最严重的事故。</p>
+<p><strong>检测信号</strong></p>
+<ul>
+<li>单 user_id 在 1 小时内访问的 org_id 数 &gt; org_member 中的所属数。</li>
+<li>越权探测路由的 404 比例：任何 <code>/orgs/{org_id}/*</code> 路由对非成员必须 100% 404；某路由 404 为 0 且请求量正常 → 疑似漏校验。</li>
+<li>CI 越权测试：A 校成员用 B 校的 org_id / site_id / sn 遍历全部路由。</li>
+</ul>
+<p><b class="k">止血</b>下线该路由或回滚 fleet-svc / BFF 版本；从访问日志导出被越权访问的 org 与数据类型清单交法务；涉及学生数据的按试点协议通知学校。</p>
+<p><b class="k">根治</b>三道锁（§4.4）全部进 CI 阻断；repo 层 SQL 由模板生成，禁止 handler 直写；越权测试覆盖每一条新路由（路由表变更触发测试用例生成）。</p>
+
+<h3 id="inc-5-04-设备被误归属到别的组织"><code>INC-5-04</code> 设备被误归属到别的组织</h3>
+<p><b class="k">触发</b>管理员手输 SN 打错一位，恰好是另一位个人用户的机器；或扫码扫到展示机。</p>
+<p><b class="k">传播</b>无辜个人用户的机器突然「由组织管理」，指令面板置灰，课表一到点就锁。</p>
+<p><b class="k">检测信号</b>归属后 24 小时内原个人用户投诉；归属设备的个人绑定用户与组织所在地区不一致。</p>
+<p><b class="k">止血</b>解除归属；通知个人用户并说明。</p>
+<p><b class="k">根治</b>归属需设备端确认（设备屏幕显示「加入 X 学校？」，或设备在线且 5 分钟内有作业才允许）；归属前显示该 SN 的个人绑定用户脱敏信息让管理员核对；一次归属数量上限。</p>
+
+<h2 id="3-看板"><span class="no">03</span>看板</h2>
+<h3 id="inc-5-05-看板批量影子打爆-redis-或-deviceapi"><code>INC-5-05</code> 看板批量影子打爆 Redis 或 deviceapi</h3>
+<p><b class="k">触发</b>讲台平板前台常驻，1 万站点同时上课，30 s 轮询且 ETag 未生效（每次都是 200）；或站点 SN 列表缓存失效导致每次查 PG。</p>
+<p><b class="k">传播</b>deviceapi 批量影子接口延迟上升 → 个人 App 的影子读也变慢（共用 deviceapi 与 Redis）→ BL1 体验受损。</p>
+<p><b class="k">检测信号</b>deviceapi <code>/devices/shadows</code> QPS 与延迟；Redis MGET 命令数；304 比例 &lt; 50%。</p>
+<p><b class="k">止血</b>BFF 对看板路由返回 <code>Retry-After: 60</code> 放慢；fleet-svc 看板聚合改为只读 Redis 缓存（15 s）不透传到 deviceapi。</p>
+<p><b class="k">根治</b>ETag 必须基于 max(updated_at) 稳定生成（不含请求时间）；站点看板结果 Redis 缓存 10 s，同站点多个讲台共享；批量影子接口独立限流（按 org）。</p>
+
+<h3 id="inc-5-06-看板显示与设备实际不一致"><code>INC-5-06</code> 看板显示与设备实际不一致</h3>
+<p><b class="k">触发</b>在线判定用影子 updated_at 90 s，但空闲设备心跳 60 s 加上管道 lag 可能超过 90 s；或待升级判定的「最新固件」缓存过期。</p>
+<p><b class="k">传播</b>老师看到机器离线跑去查，机器其实正常；或看到「待升级」点了批量升级实际已是最新。</p>
+<p><b class="k">检测信号</b>抽样对账：看板标记离线但 EMQX 连接存在的比例 &gt; 2%。</p>
+<p><b class="k">止血</b>在线阈值临时调到 150 s。</p>
+<p><b class="k">根治</b>在线判定统一用 deviceapi 的规则并随 BL1 心跳参数调整；看板对「离线」显示最后上报时间而不是二元状态；待升级判定带固件缓存版本号。</p>
+
+<h2 id="4-时段锁定"><span class="no">04</span>时段锁定</h2>
+<h3 id="inc-5-07-禁用误伤安全-s1"><code>INC-5-07</code> 禁用误伤安全（S1）</h3>
+<p><strong>触发路径推演</strong></p>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>情形</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>固件 locked 实现把「禁止开始」误做成「断激光电源」或「忽略传感器」，安全规则不再触发</td>
+</tr>
+<tr>
+<td>B</td>
+<td>固件 locked 下屏蔽了所有上行事件（以为锁了就不用上报），FLAME_DETECTED 没发出</td>
+</tr>
+<tr>
+<td>C</td>
+<td>云端 fleet-svc 的 lock 下发与 alarm-svc 共用某个开关，锁定时误关了推送</td>
+</tr>
+<tr>
+<td>D</td>
+<td>急停按钮在 locked 状态下被软件层拦截</td>
+</tr>
+</tbody>
+</table></div>
+<p><b class="k">传播</b>禁用期间（通常是无人的夜间或周末）若有火灾隐患，机器不停机或没人知道。学校场景下这是最坏结果。</p>
+<p><strong>检测信号</strong></p>
+<ul>
+<li>禁用误伤安全率对账（PRD §8）：禁用时段内 events 安全码 vs alarm 表，缺失 &gt; 0 即 S1。</li>
+<li>台架：每个固件版本发布前 locked 状态下注入火焰、超温、急停三项。</li>
+<li>合成探针：试点学校每站点 1 台探针机夜间 locked 状态下每小时发一条测试安全事件（用专用测试码 SAFETY_PROBE，走同一链路但不推送用户）。</li>
+</ul>
+<p><strong>止血（立即）</strong></p>
+<ol>
+<li>全局解除锁：fleet-svc 对全部归属设备 PATCH desired lock=false（应急接口 <code>POST /internal/unlock-all</code>，需双人确认），登记。</li>
+<li>通知试点学校暂停使用课表锁定功能，改为物理断电。</li>
+<li>固件回滚到不含 locked 逻辑的版本（走 OTA 灰度）。</li>
+</ol>
+<p><b class="k">根治</b>DR-501 红线台架测试进固件发布门禁；locked 只允许改一个变量（start_allowed），其它任何模块不读它；云端 lock 与安全链路零依赖由依赖扫描锁定；合成探针 P0 上线。</p>
+
+<h3 id="inc-5-08-上课时全站锁死无法解锁-s1"><code>INC-5-08</code> 上课时全站锁死无法解锁（S1）</h3>
+<p><b class="k">触发</b>课表编辑错误（把上课时间填成禁用时间）；夏令时切换；fleet-svc 停机导致解锁接口不可用；设备 RTC 漂移。</p>
+<p><b class="k">传播</b>一间教室 12 台机器上课时全部 locked，老师在 App 解锁失败，一节课报废。发生在周一早八点影响全校。</p>
+<p><b class="k">检测信号</b>站点在课表窗口内出现 LOCKED_START_DENIED 突增；老师求助工单；解锁接口 5xx。</p>
+<p><strong>止血（5 分钟内）</strong></p>
+<ol>
+<li>站点级解锁 <code>POST /orgs/{org}/sites/{site}/unlock {minutes: 240}</code>。</li>
+<li>fleet-svc 不可用：直接对 deviceapi 逐台 PATCH desired lock=false（运维脚本，SN 列表来自 device_org）。</li>
+<li>设备离线或云端全挂：教师用设备屏幕解锁码（P1，无网时唯一路径）；P0 试点期给每校一个「应急解锁 U 盘」（固件支持本地解锁文件）。</li>
+</ol>
+<p><b class="k">根治</b>课表保存前预览「未来 7 天锁定时段」让老师确认；解锁路径不依赖 fleet-svc（deviceapi desired 直写为兜底）；解锁码 P1 提前；RTC 漂移 &gt; 10 min 以云端最后指令为准（DR-502）。</p>
+
+<h3 id="inc-5-09-锁不住"><code>INC-5-09</code> 锁不住</h3>
+<p><b class="k">触发</b>设备本地课表未下发成功（desired.schedule 未收敛）且云端 lock 补发对账未运行；固件 locked 实现只拦本地开始键没拦局域网 XCS 直连加工。</p>
+<p><b class="k">传播</b>放学后学生用 XCS 直连开机器，违反学校规定，安全隐患。</p>
+<p><b class="k">检测信号</b>时段外违规开机率 &gt; 1%；reported.schedule_version 落后 desired 的设备数。</p>
+<p><b class="k">止血</b>对账重发 desired；确认固件是否拦截局域网路径，未拦则通知学校物理断网或断电。</p>
+<p><b class="k">根治</b>locked 必须拦截所有开始路径（本地键、局域网、云端）是 DR-501 的一部分，台架测试三条路径；对账每分钟运行；学生角色是否允许局域网直连由组织策略决定（PRD 开放问题 1）。</p>
+
+<h3 id="inc-5-10-时区或夏令时错误"><code>INC-5-10</code> 时区或夏令时错误</h3>
+<p><b class="k">触发</b>site.tz 填错（学校在美东填了美西）；夏令时切换日 ShouldLock 用了固定偏移；设备本地时区与 site.tz 不一致。</p>
+<p><b class="k">传播</b>整站课表偏移 1 小时：早上第一节课锁着，下午放学后开着。同一时区的所有学校同一天出问题。</p>
+<p><b class="k">检测信号</b>多站点在整点边界前后 1 小时同时出现锁死或违规；发生在 3 月与 11 月的切换日。</p>
+<p><b class="k">止血</b>站点级解锁；修正 tz 后重发课表。</p>
+<p><b class="k">根治</b>ShouldLock 用 IANA 时区库计算，单测覆盖夏令时切换日；课表下发给设备带 tz 而不是偏移；设备本地按 tz 计算；夏令时切换前一周自动巡检所有站点。</p>
+
+<h3 id="inc-5-11-临时解锁到期不回锁"><code>INC-5-11</code> 临时解锁到期不回锁</h3>
+<p><b class="k">触发</b>设备到期回落逻辑 bug；云端到期补发未运行；lock_expires_at 单位错误（秒当毫秒）。</p>
+<p><b class="k">传播</b>老师解锁 60 分钟，机器整晚开着。</p>
+<p><b class="k">检测信号</b>reported.lock_state=2 且 now &gt; desired.lock_expires_at 的设备数 &gt; 0 持续 5 分钟。</p>
+<p><b class="k">止血</b>对账补发 lock=true。</p>
+<p><b class="k">根治</b>设备端与云端双重到期；lock_expires_at 单位在物模型固定为 ms 并单测；解锁上限 240 分钟限制影响范围。</p>
+
+<h3 id="inc-5-12-课表下发风暴"><code>INC-5-12</code> 课表下发风暴</h3>
+<p><b class="k">触发</b>管理员编辑组织级课表模板应用到全部 50 个站点，一次触发 2000 台 PATCH desired。</p>
+<p><b class="k">传播</b>deviceapi 写 PG 与 MQTT 下行尖峰；shadow_desired 行锁竞争；其它用户的 desired 写变慢。</p>
+<p><b class="k">检测信号</b>deviceapi PATCH QPS 尖峰；MQTT 下行积压。</p>
+<p><b class="k">止血</b>fleet-svc 下发限速（每秒 20 台）；剩余排队。</p>
+<p><b class="k">根治</b>课表下发走后台任务队列，限速且可观测；组织级模板应用需确认影响设备数。</p>
+
+<h2 id="5-任务队列"><span class="no">05</span>任务队列</h2>
+<h3 id="inc-5-13-调度器重复下发-s1"><code>INC-5-13</code> 调度器重复下发（S1）</h3>
+<p><b class="k">触发</b>两个副本同时认为自己是 leader（advisory lock 会话断开后重连，旧 leader 未感知）；或条件 UPDATE 被写成无条件。</p>
+<p><b class="k">传播</b>同一个学生任务下发到两台机器，两份材料报废；或同一台机器收到两个任务，第二个把第一个打断。</p>
+<p><b class="k">检测信号</b>同 item_id 多条 dispatched；同 job_id 出现在两台设备的 JOB_START；uk_item_device_active 唯一冲突日志。</p>
+<p><b class="k">止血</b>停止全部调度器副本（<code>IOT_FLEET_SCHEDULER=off</code>）；人工处理在途项。</p>
+<p><b class="k">根治</b>条件 UPDATE + 唯一索引双保险（§7.3）；job_start 幂等键 = item_id 在 deviceapi 层去重；leader 每轮开始重新确认锁仍持有；重复下发对账进每日任务且必须为 0。</p>
+
+<h3 id="inc-5-14-调度器双-leader-或无-leader"><code>INC-5-14</code> 调度器双 leader 或无 leader</h3>
+<p><b class="k">触发</b>PG 连接抖动导致 advisory lock 释放，新副本获锁，旧副本因网络分区仍在跑；或全部副本都拿不到锁（锁被僵死会话持有）。</p>
+<p><b class="k">传播</b>双 leader → INC-5-13；无 leader → 队列停摆，学生等待。</p>
+<p><b class="k">检测信号</b><code>fleet_scheduler_leader</code> 计数 ≠ 1；approved 项等待中位数上升。</p>
+<p><b class="k">止血</b>无 leader：<code>pg_terminate_backend</code> 僵死会话；双 leader：重启全部副本。</p>
+<p><b class="k">根治</b>leader 用「锁 + 租约时间戳」双重判定；每轮前检查 <code>pg_advisory_lock</code> 仍持有且租约未过期；锁会话与业务连接分离。</p>
+
+<h3 id="inc-5-15-任务下发到-locked-或作业中设备"><code>INC-5-15</code> 任务下发到 locked 或作业中设备</h3>
+<p><b class="k">触发</b>调度器读影子时设备空闲未锁，下发瞬间课表切换或本地开始了任务（影子 30 s 新鲜度窗口）。</p>
+<p><b class="k">传播</b>设备端拒绝（DR-501）并回 cmd_ack fail，任务回队列。若设备端校验缺失则打断进行中任务。</p>
+<p><b class="k">检测信号</b>LOCKED_START_DENIED{source:cloud} 与 cmd_ack fail 比例 &gt; 5%。</p>
+<p><b class="k">止血</b>调度器在窗口边界前后 2 分钟不下发。</p>
+<p><b class="k">根治</b>设备端校验是安全边界（BL4 INC-4-11 同一结论）；调度器把 ShouldLock(now+估算时长) 也纳入判定，避免任务跨越锁定边界。</p>
+
+<h3 id="inc-5-16-学生绕过审批"><code>INC-5-16</code> 学生绕过审批</h3>
+<p><b class="k">触发</b>auto_approve_materials 配置为通配或包含不该自动的材料；参数档判定 official 的逻辑错误把学生自定义参数也当官方。</p>
+<p><b class="k">传播</b>学生用不允许的材料或危险参数直接加工。</p>
+<p><b class="k">检测信号</b>approved_by=auto 比例 100%；自动批准项的 material_id 不在白名单。</p>
+<p><b class="k">止血</b>清空该队列白名单，全部转人工。</p>
+<p><b class="k">根治</b>白名单只允许 material 表中的官方材料且 param_profile_id 必须为 official 源；配置变更需 org_admin 二次确认；自动批准比例进看板。</p>
+
+<h3 id="inc-5-17-队列文件-url-过期循环"><code>INC-5-17</code> 队列文件 URL 过期循环</h3>
+<p><b class="k">触发</b>任务在队列等待超过 24 小时，文件预签名 URL 过期；下发时设备下载失败 → skipped → 回队尾 → 再下发再失败。</p>
+<p><b class="k">传播</b>任务永远完成不了，学生不知道原因。</p>
+<p><b class="k">检测信号</b>skipped 项的失败原因为下载类；skip_count ≥ 2 项数上升。</p>
+<p><b class="k">止血</b>对 skip_count ≥ 2 项直接 needs_teacher 并提示重新上传。</p>
+<p><b class="k">根治</b>下发前检查 file_url_expires_at，过期则请求客户端重新上传（状态 needs_reupload）；队列等待超 20 小时主动提醒。</p>
+
+<h2 id="6-批量-ota"><span class="no">06</span>批量 OTA</h2>
+<h3 id="inc-5-18-批量-ota-在上课时间下发"><code>INC-5-18</code> 批量 OTA 在上课时间下发</h3>
+<p><b class="k">触发</b>window 的 tz 与 site.tz 不一致；weekdays 用 0 起还是 1 起理解不同；ota-svc InWindow 未实现或被绕过。</p>
+<p><b class="k">传播</b>周一早八点 12 台机器同时进入升级，一节课没了。</p>
+<p><b class="k">检测信号</b>窗口外下发数 &gt; 0（对账 ota_device_task.updated_at vs window）。</p>
+<p><b class="k">止血</b>pause 子批次。</p>
+<p><b class="k">根治</b>InWindow 纯函数表驱动单测覆盖时区与跨午夜；window 的 tz 必填且默认取 site.tz；下发前 fleet-svc 与 ota-svc 双重校验。</p>
+
+<h3 id="inc-5-19-批量-ota-打满校园带宽"><code>INC-5-19</code> 批量 OTA 打满校园带宽</h3>
+<p><b class="k">触发</b>站点并发下载限制未生效，200 台同时下载 100 MB 整包。</p>
+<p><b class="k">传播</b>校园网拥塞，其它教学系统受影响，学校投诉。</p>
+<p><b class="k">检测信号</b>站点并发下载 &gt; 5；下载超时率上升。</p>
+<p><b class="k">止血</b>pause；调小并发。</p>
+<p><b class="k">根治</b>fleet-svc 按站点分片 explicit_sns 并串行创建子批次；差分包优先（BL1 FR-24）；窗口内速率上限可按组织配置。</p>
+
+<h3 id="inc-5-20-组织子批次绕过灰度"><code>INC-5-20</code> 组织子批次绕过灰度</h3>
+<p><b class="k">触发</b>fleet-svc 校验父批次档位的查询错误（查了 fused 批次或未按 firmware_id 过滤）；或运维直接调 ota-svc 建 explicit_sns 批次。</p>
+<p><b class="k">传播</b>某学校成为未经灰度固件的第一批用户，若固件有问题则一所学校全部刷坏。</p>
+<p><b class="k">检测信号</b>子批次 firmware 的父批次最高档位 &lt; 10% 或 fused。</p>
+<p><b class="k">止血</b>pause 子批次；A/B 回滚兜底。</p>
+<p><b class="k">根治</b>ota-svc 层校验 explicit_sns 批次必须引用已达 10% 的 parent_batch_id（不只在 fleet-svc 校验）；PG 触发器或应用层双校验。</p>
+
+<h2 id="7-告警"><span class="no">07</span>告警</h2>
+<h3 id="inc-5-21-告警推送目标查询超时"><code>INC-5-21</code> 告警推送目标查询超时</h3>
+<p><b class="k">触发</b>fleet-svc 慢或不可用；alarm-svc 等待 alarm-targets 响应超过 500 ms 超时未生效。</p>
+<p><b class="k">传播</b>告警推送延迟，触达 P99 &gt; 3 s，破 BL1 SLO。</p>
+<p><b class="k">检测信号</b>alarm_targets 延迟；推送 P99；<code>alarm_targets_fallback</code> 计数。</p>
+<p><b class="k">止血</b>确认 alarm-svc 的 500 ms 超时与回退生效；不生效则临时关闭 alarm-targets 查询（环境变量），全部回退个人绑定用户，登记。</p>
+<p><b class="k">根治</b>alarm-svc 对 fleet-svc 的调用有超时、熔断、回退三件套且集成测试覆盖「fleet-svc 停机推送仍到达」；订阅关系可选地由 fleet-svc 推到 Redis 供 alarm-svc 直读，去掉同步调用。</p>
+
+<h3 id="inc-5-22-告警推给了已离职老师"><code>INC-5-22</code> 告警推给了已离职老师</h3>
+<p><b class="k">触发</b>org_alarm_subscription 未随成员移除清理。</p>
+<p><b class="k">传播</b>离职老师半夜收到学校机器告警；现任老师没收到（若订阅只有一人）。</p>
+<p><b class="k">检测信号</b>订阅表 user_id 在 org_member 中 removed_at 非空。</p>
+<p><b class="k">止血</b>清理订阅；补订阅现任老师。</p>
+<p><b class="k">根治</b>成员移除事务内删除订阅；站点至少一个有效订阅人否则告警 org_admin；每日对账。</p>
+
+<h2 id="8-订阅与合规"><span class="no">08</span>订阅与合规</h2>
+<h3 id="inc-5-23-订阅到期误伤课表与告警-p2-s1"><code>INC-5-23</code> 订阅到期误伤课表与告警（P2，S1）</h3>
+<p><b class="k">触发</b>entitlement 中间件挂到 <code>/orgs/*</code> 根路由；或到期处理把 device_org 也解除了。</p>
+<p><b class="k">传播</b>到期学校的机器课表停止下发、解锁失败、告警订阅失效。学校没付钱不该导致机器锁死或告警丢失。</p>
+<p><b class="k">检测信号</b>到期组织的 schedule / unlock / alarm-subscriptions 路由 403；依赖扫描。</p>
+<p><b class="k">止血</b>回滚；entitlement 中间件全局短路放行（商业损失可接受）。</p>
+<p><b class="k">根治</b>与 BL4 INC-4-23 同一三重锁定；到期处理只改 entitlement 表不碰 device_org；停机冒烟增加「到期组织仍可解锁」用例。</p>
+
+<h3 id="inc-5-24-学生数据超范围采集"><code>INC-5-24</code> 学生数据超范围采集</h3>
+<p><b class="k">触发</b>为了「显示学生姓名」在 org_member 加了 display_name 列；或队列缩略图被持久化；或 queue_item 存了文件名。</p>
+<p><b class="k">传播</b>未成年人数据在设备云持久化，违反试点协议与法规。</p>
+<p><b class="k">检测信号</b>数据字典审计；表结构变更评审。</p>
+<p><b class="k">止血</b>删列并清数据；通知法务。</p>
+<p><b class="k">根治</b>BL5 表结构变更需法务评审；显示名只从 PII 平台按 user_id 实时取；文件与缩略图 24 h 生命周期由对象存储策略兜底。</p>
+
+<h2 id="9-bl5-特有的临时关闭项模板"><span class="no">09</span>BL5 特有的临时关闭项模板</h2>
+<p>沿用 BL1 §10 登记表：</p>
+<ul>
+<li><code>POST /internal/unlock-all</code> 全局解锁</li>
+<li>调度器停止 <code>IOT_FLEET_SCHEDULER=off</code></li>
+<li>alarm-targets 查询关闭（全部回退个人绑定）</li>
+<li>看板路由 Retry-After 放慢</li>
+<li>在线判定阈值 90 s → 150 s</li>
+<li>entitlement 中间件全局短路</li>
+</ul>
+
+<h2 id="10-演练计划"><span class="no">10</span>演练计划</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>演练</th>
+<th>剧本</th>
+<th>对应事故</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>试点前</td>
+<td>locked 台架三项</td>
+<td>locked 下注入火焰 / 超温 / 急停，三条开始路径被拦</td>
+<td>INC-5-07 INC-5-09</td>
+</tr>
+<tr>
+<td>试点前</td>
+<td>越权</td>
+<td>A 校成员遍历 B 校全部路由</td>
+<td><a href="#inc-5-03-租户越权"><code>INC-5-03</code></a></td>
+</tr>
+<tr>
+<td>试点前</td>
+<td>锁死恢复</td>
+<td>故意填错课表 → 站点解锁 → fleet-svc 停机后 deviceapi 直写解锁</td>
+<td><a href="#inc-5-08-上课时全站锁死无法解锁-s1"><code>INC-5-08</code></a></td>
+</tr>
+<tr>
+<td>试点前</td>
+<td>调度器双副本</td>
+<td>两个 Scheduler 并发 100 轮，dispatched == 项数</td>
+<td>INC-5-13 INC-5-14</td>
+</tr>
+<tr>
+<td>试点前</td>
+<td>窗口外 OTA</td>
+<td>window 设为过去 → 零下发</td>
+<td><a href="#inc-5-18-批量-ota-在上课时间下发"><code>INC-5-18</code></a></td>
+</tr>
+<tr>
+<td>试点前</td>
+<td>fleet-svc 停机</td>
+<td>冒烟五步 + 告警推送到达</td>
+<td><a href="#inc-5-21-告警推送目标查询超时"><code>INC-5-21</code></a></td>
+</tr>
+<tr>
+<td>试点中</td>
+<td>夏令时巡检</td>
+<td>切换日前一周对全部站点跑 ShouldLock 对比</td>
+<td><a href="#inc-5-10-时区或夏令时错误"><code>INC-5-10</code></a></td>
+</tr>
+<tr>
+<td>每月</td>
+<td>合成探针</td>
+<td>locked 探针机安全事件链路</td>
+<td><a href="#inc-5-07-禁用误伤安全-s1"><code>INC-5-07</code></a></td>
+</tr>
+<tr>
+<td>P2</td>
+<td>到期组织</td>
+<td>entitlement 停机与到期组织仍可解锁</td>
+<td><a href="#inc-5-23-订阅到期误伤课表与告警-p2-s1"><code>INC-5-23</code></a></td>
+</tr>
+</tbody>
+</table></div>
+
+<h2 id="11-试点上线前必须补齐的能力"><span class="no">11</span>试点上线前必须补齐的能力</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>能力</th>
+<th>对应事故</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>locked 只改 start_allowed 一个变量，台架三项进固件门禁</td>
+<td><a href="#inc-5-07-禁用误伤安全-s1"><code>INC-5-07</code></a></td>
+<td>P0 红线</td>
+</tr>
+<tr>
+<td>合成探针：站点探针机 locked 下安全事件链路每小时</td>
+<td><a href="#inc-5-07-禁用误伤安全-s1"><code>INC-5-07</code></a></td>
+<td>P0</td>
+</tr>
+<tr>
+<td>解锁兜底不依赖 fleet-svc（deviceapi 直写脚本）；应急解锁 U 盘</td>
+<td><a href="#inc-5-08-上课时全站锁死无法解锁-s1"><code>INC-5-08</code></a></td>
+<td>P0</td>
+</tr>
+<tr>
+<td>越权测试进 CI；repo 层 SQL 模板化</td>
+<td><a href="#inc-5-03-租户越权"><code>INC-5-03</code></a></td>
+<td>P0</td>
+</tr>
+<tr>
+<td>授权与订阅在成员变更事务内失效</td>
+<td>INC-5-01 INC-5-22</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>调度器条件 UPDATE + uk_item_device_active + 幂等键 + 租约</td>
+<td>INC-5-13 INC-5-14</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>InWindow / ShouldLock 用 IANA 时区并单测夏令时</td>
+<td>INC-5-10 INC-5-18</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>ota-svc 层校验 explicit_sns 批次的父批次档位</td>
+<td><a href="#inc-5-20-组织子批次绕过灰度"><code>INC-5-20</code></a></td>
+<td>P0</td>
+</tr>
+<tr>
+<td>alarm-svc 对 fleet-svc 超时 / 熔断 / 回退 + 停机测试</td>
+<td><a href="#inc-5-21-告警推送目标查询超时"><code>INC-5-21</code></a></td>
+<td>P0</td>
+</tr>
+<tr>
+<td>课表下发限速与后台任务</td>
+<td><a href="#inc-5-12-课表下发风暴"><code>INC-5-12</code></a></td>
+<td>P0</td>
+</tr>
+<tr>
+<td>归属需设备确认或核对个人绑定用户</td>
+<td><a href="#inc-5-04-设备被误归属到别的组织"><code>INC-5-04</code></a></td>
+<td>P1</td>
+</tr>
+<tr>
+<td>屏幕解锁码</td>
+<td><a href="#inc-5-08-上课时全站锁死无法解锁-s1"><code>INC-5-08</code></a></td>
+<td>P1</td>
+</tr>
+<tr>
+<td>文件过期 needs_reupload</td>
+<td><a href="#inc-5-17-队列文件-url-过期循环"><code>INC-5-17</code></a></td>
+<td>P1</td>
+</tr>
+<tr>
+<td>entitlement 三重锁定 + 到期组织仍可解锁用例</td>
+<td><a href="#inc-5-23-订阅到期误伤课表与告警-p2-s1"><code>INC-5-23</code></a></td>
+<td>P2</td>
+</tr>
+</tbody>
+</table></div>
+
+<footer>
+  <p>本文与 docs/incident-premortem-bl1.md、docs/incident-premortem-bl4.md 配套：设备与平台侧看 BL1，入口与业务链路看 BL4，组织与锁定看本文。每次真实事故后按 docs/incident-register-storm.md 的格式复盘并回写对应 INC-5 条目。</p>
+</footer>
+</div>
+
+</body>
+</html>

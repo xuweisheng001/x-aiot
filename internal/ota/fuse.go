@@ -23,3 +23,19 @@ func FailRatio(ok, fail int) float64 {
 	}
 	return float64(fail) / float64(ok+fail)
 }
+
+// DefaultMinAbsFail：绝对数熔断默认阈值。样本不足 MinFuseSamples 时比例规则永不触发，
+// 但坏固件在 0.1% 档（可能只有几十台）上把每台都刷坏同样是灾难——fail 达到绝对数即熔断（预推演 INC-16）。
+const DefaultMinAbsFail = 5
+
+// ShouldFuseAbs = ShouldFuse（比例规则） || fail >= minAbsFail。minAbsFail <= 0 表示关闭绝对数规则，
+// 此时行为与 ShouldFuse 完全一致。
+func ShouldFuseAbs(ok, fail int, threshold float64, minSamples, minAbsFail int) bool {
+	if ok < 0 || fail < 0 {
+		return false
+	}
+	if minAbsFail > 0 && fail >= minAbsFail {
+		return true
+	}
+	return ShouldFuse(ok, fail, threshold, minSamples)
+}

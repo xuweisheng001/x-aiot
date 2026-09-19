@@ -1,5 +1,7 @@
 SHELL := /bin/bash
-SVCS := bootstrap-svc auth-svc conn-gate bridge pipeline deviceapi alarm-svc ota-svc cf001-svc device-simulator loadgen
+SVCS := bootstrap-svc auth-svc conn-gate bridge pipeline deviceapi alarm-svc ota-svc cf001-svc \
+        param-svc job-svc reco-job accessory-svc health-svc fleet-svc support-svc \
+        device-simulator loadgen
 export IOT_MQTT_URL ?= tcp://127.0.0.1:1883
 
 .PHONY: dev down build test test-it vet keys run-% smoke loadtest-conn loadtest-storm loadtest-flood schema-td

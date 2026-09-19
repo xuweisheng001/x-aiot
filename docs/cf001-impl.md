@@ -82,10 +82,10 @@ COMMIT;
 | 项 | 开发（本原型） | 生产要求 |
 |---|---|---|
 | 密钥对 | **一对** RSA-2048 同时做 OAEP 解密和 PSS 签名 | **两对**：加密密钥对 + 签名密钥对；签名私钥进 **HSM/KMS**，服务只拿签名句柄 |
-| 密钥来源 | `make keys` 生成到 `./data/keys/`（gitignore）；缺失时内存临时密钥 | 由 KMS 托管，禁止落盘；轮换有版本号，公钥带 kid 下发 |
+| 密钥来源 | `make keys` 生成到 `./data/keys/`（gitignore）；缺失时内存临时密钥并 WARN。**`IOT_CF001_REQUIRE_KEY=true` 时缺失或不可解析直接拒绝启动（`LoadKeyStrict`）** | 由 KMS 托管，禁止落盘；轮换有版本号，公钥带 kid 下发；部署必须设 `IOT_CF001_REQUIRE_KEY=true` |
 | 数据库凭据 | DSN 明文环境变量 `IOT_PG_DSN` | Secret 管理 + 短期凭据 |
 | 服务间调用 | 无鉴权 / 静态 token | mTLS 或签名的服务 token |
-| 时间戳/nonce | 解析但**不校验新鲜度、不防重放** | 校验 `|now - timestamp| < 5min`，nonce 入 Redis 去重 |
+| 时间戳/nonce | **已实现**：`CheckFreshness` 校验 \|now − ts\| ≤ `IOT_CF001_FRESHNESS_WINDOW`（默认 5m，秒/毫秒自动识别，未来时间同样拒绝）→ nonce `SETNX cf001:nonce:{nonce} EX 2×窗口`；重放/过期 400 code 10001，Redis 出错 503（fail-closed）。`IOT_CF001_SKIP_FRESHNESS=true` 可关闭（仅开发，启动 WARN） | 同左，且开关必须为 false；nonce 存储多副本共享（Redis 集中） |
 | 限流 | 进程内令牌桶 | Redis 集中令牌桶（或网关层） |
 | 传输 | HTTP 明文 | TLS（设备侧 pin 云证书） |
 | SN 日期 | 服务端 UTC | 产线本地时区，需统一约定 |
@@ -106,5 +106,6 @@ curl -s localhost:8087/api/v1/oem/pubkey
 curl -s -XPOST localhost:8087/api/v1/oem/quotas -d '{"order_no":"PO-1","supplier":"ACME","product_key":"LM_S1","quota":10}'
 # 用 pubkey 对 "digest|nonce|ts" 做 OAEP 加密并 base64 → payload_b64
 curl -s -XPOST localhost:8087/api/v1/oem/sign -d '{"order_no":"PO-1","line":"01","payload_b64":"..."}'
-IOT_IT=1 go test -race -count=1 ./internal/cf001/   # 配额竞态 + DDL 约束证明
+IOT_IT=1 go test -race -count=1 ./internal/cf001/   # 配额竞态 + DDL 约束证明 + Redis nonce SETNX
+curl -s localhost:8087/metrics                       # sign_ok/existing/no_quota/stale/replay/nonce_store_err
 ```

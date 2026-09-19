@@ -29,6 +29,8 @@ type Store interface {
 	MergeDesired(ctx context.Context, sn string, patch json.RawMessage) (version int64, desired json.RawMessage, err error)
 	InsertAudit(ctx context.Context, rec AuditRecord) error
 	MarkAcked(ctx context.Context, cmdID, result string) error
+	// EnsureAuditPartitions 预建从当月起未来 monthsAhead 个月的 cmd_audit 分区，返回新建数量（INC-24）。
+	EnsureAuditPartitions(ctx context.Context, monthsAhead int) (created int, err error)
 }
 
 // PGStore 是 Store 的 pgx 实现（schema iot_shard）。
@@ -98,4 +100,12 @@ func (s *PGStore) MarkAcked(ctx context.Context, cmdID, result string) error {
 		return fmt.Errorf("mark acked: %w", err)
 	}
 	return nil
+}
+
+func (s *PGStore) EnsureAuditPartitions(ctx context.Context, monthsAhead int) (int, error) {
+	var n int
+	if err := s.Pool.QueryRow(ctx, `SELECT iot_shard.ensure_cmd_audit_partitions($1)`, monthsAhead).Scan(&n); err != nil {
+		return 0, fmt.Errorf("ensure audit partitions: %w", err)
+	}
+	return n, nil
 }

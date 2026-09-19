@@ -79,7 +79,7 @@ func MustNATS() (*nats.Conn, jetstream.JetStream) {
 	return nc, js
 }
 
-// EnsureStreams 幂等创建 IOT_UP（72h 重放窗口）与 IOT_CMD（30 天审计流）。
+// EnsureStreams 幂等创建 IOT_UP（72h 重放窗口）、IOT_CMD（30 天审计流）与 IOT_DLQ（7 天死信流）。
 func EnsureStreams(ctx context.Context, js jetstream.JetStream) error {
 	_, err := js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
 		Name: envelope.StreamUp, Subjects: []string{"iot.up.>"}, MaxAge: 72 * time.Hour,
@@ -94,6 +94,20 @@ func EnsureStreams(ctx context.Context, js jetstream.JetStream) error {
 	})
 	if err != nil {
 		return fmt.Errorf("stream %s: %w", envelope.StreamCmd, err)
+	}
+	_, err = js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
+		Name: envelope.StreamDLQ, Subjects: []string{"iot.dlq.>"}, MaxAge: 7 * 24 * time.Hour,
+		Storage: jetstream.FileStorage, Retention: jetstream.LimitsPolicy,
+	})
+	if err != nil {
+		return fmt.Errorf("stream %s: %w", envelope.StreamDLQ, err)
+	}
+	_, err = js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
+		Name: envelope.StreamNotify, Subjects: []string{"iot.notify.>"}, MaxAge: 7 * 24 * time.Hour,
+		Storage: jetstream.FileStorage, Retention: jetstream.LimitsPolicy,
+	})
+	if err != nil {
+		return fmt.Errorf("stream %s: %w", envelope.StreamNotify, err)
 	}
 	return nil
 }

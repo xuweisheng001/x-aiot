@@ -23,6 +23,11 @@ services:
       - ../sql/global.sql:/docker-entrypoint-initdb.d/01-global.sql:ro
       - ../sql/shard.sql:/docker-entrypoint-initdb.d/02-shard.sql:ro
       - ../sql/cf001.sql:/docker-entrypoint-initdb.d/03-cf001.sql:ro
+      - ../sql/bl4.sql:/docker-entrypoint-initdb.d/04-bl4.sql:ro
+      - ../sql/bl2.sql:/docker-entrypoint-initdb.d/05-bl2.sql:ro
+      - ../sql/bl3.sql:/docker-entrypoint-initdb.d/07-bl3.sql:ro
+      - ../sql/bl5.sql:/docker-entrypoint-initdb.d/08-bl5.sql:ro
+      - ../sql/bl6.sql:/docker-entrypoint-initdb.d/09-bl6.sql:ro
   tdengine:
     image: tdengine/tdengine:3.3.5.0
     ports: ["6030:6030", "6041:6041"]

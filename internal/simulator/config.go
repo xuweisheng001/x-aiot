@@ -21,6 +21,9 @@ func (e EventSpec) Enabled() bool { return e.Code != "" }
 
 // Config 对应命令行 flags。
 type Config struct {
+	// SeqBase 是上行 seq 的起始值。0 表示按启动时刻推导（UnixMilli×1000），模拟真实设备跨重启单调的 seq（DR-07），
+	// 避免 10 分钟内重跑模拟器时与云端 dedupe:{sn}:{seq} 撞键；负数表示从 0 起（仅测试）。
+	SeqBase     int64
 	N           int
 	PK          string
 	MQTTURL     string // tcp://host:port（bootstrap 不可达时的兜底）
@@ -32,6 +35,16 @@ type Config struct {
 	OTAFailRate float64
 	SNPrefix    string
 	FW          string
+
+	// 物模型 v1.1（BL4）
+	Jobs     bool   // 作业周期内发 JOB_START / JOB_DONE
+	Module   string // module_model 属性
+	JobOptin bool   // 出厂 reported.job_feedback_optin；desired 下发后以 desired 为准并回报
+
+	// 配件模式（BL2）：设备是净化器，只上报净化器属性并响应 desired {power_on, fan_level}
+	Accessory    bool
+	PairHost     string // 非空时启动后通过 accessory-svc 把全部配件配到该主机
+	AccessoryURL string // accessory-svc base url
 }
 
 // ParseEvent 解析 "FLAME_DETECTED@30s"；空串表示不发事件。

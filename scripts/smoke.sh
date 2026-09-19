@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 端到端冒烟：等 bootstrap(8081)/deviceapi(8083)/alarm-svc(8085) 就绪 → 50 台模拟器跑 40s（10s 时一条 FLAME_DETECTED）
-# → 影子 / desired / 指令 / 指令结果 / 告警 五步逐项 PASS/FAIL。
+# → 影子 / desired / 指令 / 指令结果 / 告警 五步 + v1.1 开关三态 / 遥测查询 两步逐项 PASS/FAIL。
 # 依赖：curl。可选：jq（无则用 grep 兜底）。需先起 emqx/nats/redis/pg/td 与各服务。
 set -u
 BOOT=${BOOTSTRAP_URL:-http://127.0.0.1:8081}
@@ -36,11 +36,13 @@ wait_healthz "$ALARM" alarm-svc     || exit 1
 
 echo "== smoke: launching $SIM_N simulators for ${SIM_SECONDS}s (FLAME_DETECTED@10s)"
 cd "$(dirname "$0")/.." || exit 1
-go run ./cmd/device-simulator -n "$SIM_N" -event FLAME_DETECTED@10s -bootstrap "$BOOT" -mqtt "$MQTT" -work 5s -hb 60s -bad-firmware 0 \
+go run ./cmd/device-simulator -n "$SIM_N" -event FLAME_DETECTED@10s -bootstrap "$BOOT" -mqtt "$MQTT" -work 5s -hb 60s -bad-firmware 0 -job-optin=true -module LM40 \
   >/tmp/smoke-sim.out 2>/tmp/smoke-sim.err &
 SIM_PID=$!
 START=$(date +%s)
-trap 'kill -INT $SIM_PID 2>/dev/null; wait $SIM_PID 2>/dev/null' EXIT
+# go run 不向子进程转发 kill 发来的 SIGINT，先停它的子进程再停它自己，否则 wait 永远不返回
+stop_sim() { pkill -INT -P "$SIM_PID" 2>/dev/null; kill -INT "$SIM_PID" 2>/dev/null; wait "$SIM_PID" 2>/dev/null; }
+trap stop_sim EXIT
 sleep "$SETTLE"
 
 echo "== smoke: checks against $SN"
@@ -73,13 +75,34 @@ if [ -n "$cmd_id" ]; then
   if [ -n "$got" ]; then ok "GET cmds/$cmd_id ($(jget "$resp" .data.result))"; else bad "GET cmds/$cmd_id" "no ack within 15s: $resp"; fi
 fi
 
-# 5. open alarms should include FLAME_DETECTED
-resp=$(curl -sS -m 5 "$ALARM/api/v1/alarms?status=open")
-if [ "$(jget "$resp" .code)" = "0" ] && printf '%s' "$resp" | grep -q 'FLAME_DETECTED'; then ok "GET alarms?status=open contains FLAME_DETECTED"; else bad "GET alarms?status=open" "$resp"; fi
+# 5. alarms should include FLAME_DETECTED：推送成功后状态机已从 open 迁到 notified，两种状态都算命中
+found=""
+for st in notified open; do
+  resp=$(curl -sS -m 5 "$ALARM/api/v1/alarms?status=$st")
+  if [ "$(jget "$resp" .code)" = "0" ] && printf '%s' "$resp" | grep -q 'FLAME_DETECTED'; then found=$st; break; fi
+done
+if [ -n "$found" ]; then ok "GET alarms?status=$found contains FLAME_DETECTED"; else bad "GET alarms?status=notified|open" "$resp"; fi
+
+# 6. v1.1 开关三态：desired 下发 job_feedback_optin=true → 设备下一帧回报 → switches 状态应收敛为 applied（≤15s）
+resp=$(curl -sS -m 5 -X PATCH -H 'Content-Type: application/json' -d '{"job_feedback_optin":true}' "$API/api/v1/devices/$SN/desired")
+if [ "$(jget "$resp" .code)" != "0" ]; then bad "PATCH desired job_feedback_optin" "$resp"; fi
+state=""
+for i in $(seq 1 15); do
+  resp=$(curl -sS -m 5 "$API/api/v1/devices/$SN/shadow")
+  if command -v jq >/dev/null 2>&1; then state=$(printf '%s' "$resp" | jq -r '.data.switches.job_feedback_optin.state' 2>/dev/null)
+  else state=$(printf '%s' "$resp" | grep -o '"job_feedback_optin":{[^}]*}' | grep -o '"state":"[a-z]*"' | head -1 | sed -E 's/.*:"//; s/"$//'); fi
+  [ "$state" = "applied" ] && break
+  sleep 1
+done
+if [ "$state" = "applied" ]; then ok "GET shadow switches.job_feedback_optin.state=applied"; else bad "GET shadow switches.job_feedback_optin" "state=$state resp=$resp"; fi
+
+# 7. 遥测查询（TDengine 落库）
+resp=$(curl -sS -m 5 "$API/api/v1/devices/$SN/telemetry?limit=1")
+if [ "$(jget "$resp" .code)" = "0" ] && printf '%s' "$resp" | grep -q '"work_state"'; then ok "GET telemetry?limit=1 ($SN)"; else bad "GET telemetry?limit=1" "$resp"; fi
 
 # let the simulator finish its 40s window, then stop it
 NOW=$(date +%s); LEFT=$((START + SIM_SECONDS - NOW)); [ "$LEFT" -gt 0 ] && sleep "$LEFT"
-kill -INT $SIM_PID 2>/dev/null; wait $SIM_PID 2>/dev/null; trap - EXIT
+stop_sim; trap - EXIT
 echo "== simulator last status: $(tail -1 /tmp/smoke-sim.out 2>/dev/null)"
 echo "== smoke: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

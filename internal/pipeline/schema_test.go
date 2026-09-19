@@ -26,10 +26,12 @@ func TestSplitStatementsRealFile(t *testing.T) {
 		t.Skip("sql file not found")
 	}
 	got := SplitStatements(string(b))
-	if len(got) != 4 {
-		t.Fatalf("want 4 statements, got %d", len(got))
+	// DB + 2 STABLE + 4 ALTER（v1.1 events 列升级）+ STREAM
+	if len(got) != 8 {
+		t.Fatalf("want 8 statements, got %d", len(got))
 	}
-	if !strings.HasPrefix(got[0], "CREATE DATABASE") || !strings.HasPrefix(got[3], "CREATE STREAM") {
+	if !strings.HasPrefix(got[0], "CREATE DATABASE") || !strings.HasPrefix(got[3], "ALTER STABLE iot.events ADD COLUMN job_id") ||
+		!strings.HasPrefix(got[7], "CREATE STREAM") {
 		t.Fatalf("unexpected order: %q", got)
 	}
 }

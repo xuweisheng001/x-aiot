@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --ink: #1c2733;
+  --muted: #56687a;
+  --accent: #0b7285;
+  --accent-ink: #085d6e;
+  --accent-soft: rgba(11, 114, 133, 0.08);
+  --warn: #b4540a;
+  --warn-soft: rgba(180, 84, 10, 0.07);
+  --line: #dbe3e9;
+  --code-bg: #eef3f5;
+  --code-ink: #14424c;
+  --chip-ink: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161b;
+    --surface: #171f26;
+    --ink: #e3ebf0;
+    --muted: #93a5b2;
+    --accent: #4fc0d3;
+    --accent-ink: #6fd0e0;
+    --accent-soft: rgba(79, 192, 211, 0.1);
+    --warn: #e8964e;
+    --warn-soft: rgba(232, 150, 78, 0.09);
+    --line: #2a3640;
+    --code-bg: #1d2830;
+    --code-ink: #a9d8e2;
+    --chip-ink: #0e1418;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10161b;
+  --surface: #171f26;
+  --ink: #e3ebf0;
+  --muted: #93a5b2;
+  --accent: #4fc0d3;
+  --accent-ink: #6fd0e0;
+  --accent-soft: rgba(79, 192, 211, 0.1);
+  --warn: #e8964e;
+  --warn-soft: rgba(232, 150, 78, 0.09);
+  --line: #2a3640;
+  --code-bg: #1d2830;
+  --code-ink: #a9d8e2;
+  --chip-ink: #0e1418;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  line-height: 1.85;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 5rem; }
+header { margin-bottom: 2.5rem; }
+.kicker {
+  font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin: 0 0 0.8rem;
+}
+h1 {
+  font-family: "Noto Serif SC", serif; font-weight: 900;
+  font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.25;
+  margin: 0 0 1rem; text-wrap: balance;
+}
+.lede { color: var(--muted); margin: 0; max-width: 40rem; }
+nav.toc {
+  margin: 2.2rem 0 0; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); padding: 1.1rem 1.3rem;
+}
+nav.toc p { margin: 0 0 0.5rem; font-size: 0.78rem; letter-spacing: 0.14em; color: var(--muted); font-weight: 700; }
+nav.toc ol {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.15rem 1.5rem;
+}
+nav.toc a { color: var(--ink); text-decoration: none; font-size: 0.93rem; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent-ink); }
+nav.toc li::before { content: counter(list-item, decimal-leading-zero) " "; color: var(--accent); font-family: "JetBrains Mono", monospace; font-size: 0.8rem; }
+section { margin-top: 3.5rem; }
+h2 {
+  font-family: "Noto Serif SC", serif; font-weight: 700;
+  font-size: 1.5rem; line-height: 1.4; margin: 0 0 0.4rem;
+  padding-top: 1.2rem; border-top: 2px solid var(--accent); text-wrap: balance;
+}
+h2 .no { font-family: "JetBrains Mono", monospace; font-size: 0.9rem; color: var(--accent); margin-right: 0.6em; font-weight: 600; }
+h3 {
+  font-weight: 700; font-size: 1.08rem; margin: 2rem 0 0.5rem; text-wrap: balance;
+}
+h3::before { content: "▸ "; color: var(--accent); }
+p { margin: 0.6rem 0; }
+.why { color: var(--muted); font-size: 0.92rem; margin-top: -0.1rem; }
+ul, ol { margin: 0.5rem 0 0.9rem; padding-left: 1.4rem; }
+li { margin: 0.3rem 0; }
+li::marker { color: var(--accent); }
+strong { font-weight: 700; }
+code {
+  font-family: "JetBrains Mono", "Menlo", monospace; font-size: 0.85em;
+  background: var(--code-bg); color: var(--code-ink);
+  padding: 0.1em 0.4em; border-radius: 4px;
+}
+pre {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0.8rem 0 1.2rem;
+}
+pre code { background: none; padding: 0; font-size: 0.84rem; line-height: 1.7; }
+.tablebox { overflow-x: auto; margin: 0.8rem 0 1.2rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.6; }
+th, td { text-align: left; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.8rem; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+.fix { border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0; }
+.fix b { color: var(--warn); }
+.callout {
+  border-left: 3px solid var(--accent); background: var(--accent-soft);
+  border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 0.9rem 0;
+}
+.callout b { color: var(--accent-ink); }
+.f {
+  font-family: "JetBrains Mono", monospace; font-size: 0.68rem; font-weight: 600;
+  padding: 0.1em 0.55em; border-radius: 99px; white-space: nowrap;
+  vertical-align: 0.15em; margin-left: 0.5em; letter-spacing: 0.02em;
+}
+.f3 { background: var(--accent); color: var(--chip-ink); }
+.f2 { background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent); }
+.f1 { color: var(--muted); border: 1px solid var(--line); background: var(--surface); }
+td .f { margin-left: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.8rem 1.4rem; margin: 0.8rem 0 0; padding: 0; list-style: none; font-size: 0.88rem; color: var(--muted); }
+.legend li { margin: 0; }
+.qa { margin: 1.2rem 0; }
+.iq {
+  background: var(--accent-soft); border-radius: 10px 10px 10px 3px;
+  padding: 0.65rem 1rem; margin: 0.9rem 0 0.5rem; max-width: 92%;
+}
+.iq b { color: var(--accent-ink); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.ca {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px 10px 3px 10px;
+  padding: 0.65rem 1rem; margin: 0.5rem 0 0.5rem auto; max-width: 92%;
+}
+.ca b { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.08em; display: block; margin-bottom: 0.1rem; }
+.note { color: var(--muted); font-size: 0.88rem; font-style: italic; margin: 0.4rem 0 1.1rem; padding-left: 1rem; border-left: 2px dashed var(--line); }
+footer { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+.meta{display:grid;grid-template-columns:6em 1fr;gap:.2rem 1rem;font-size:.92rem;border:1px solid var(--line);border-radius:8px;padding:.9rem 1.1rem;background:var(--surface);margin:1.2rem 0}
+.meta dt{color:var(--muted);font-weight:700}.meta dd{margin:0}
+h3 code{font-size:.8rem;vertical-align:.1em;margin-right:.2em}
+b.k{display:inline-block;color:var(--accent-ink);font-size:.78rem;letter-spacing:.1em;font-weight:700;margin-right:.5em;min-width:4.5em}
+td code{white-space:nowrap}
+section{margin-top:3rem}
+</style>
+</head>
+<body>
+<title>BL4 事故预推演</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<div class="wrap">
+<header>
+  <p class="kicker">Incident Pre-mortem · BL4 软件与内容</p>
+  <h1>线上事故预推演与处置方案</h1>
+  <p class="lede">BL4 上线前，沿 App 入口、XCS 云连接、参数库、反哺推荐、订阅、合规六条线逐段推演 26 个最可能的线上事故：怎么触发、怎么传播、看哪个指标能第一时间发现、前 15 分钟做什么、之后怎么恢复、怎么根治、怎么演练。与 BL4 PRD、技术方案对应；设备与平台侧事故见 BL1 预推演。</p>
+  <ul class="legend">
+    <li><span class="f f3">S1</span> 安全链路失效 / 刷砖 / 停线，15 分钟内止血</li>
+    <li><span class="f f2">S2</span> 核心链路 ≥ 10% 设备不可用</li>
+    <li><span class="f f1">S3 / S4</span> 单链路降级 / 内部指标异常</li>
+  </ul>
+  <dl class="meta">
+    <dt>文档版本</dt><dd>v0.1 · 2026-09-18</dd>
+    <dt>目的</dt><dd>BL4 上线前把 App 入口、XCS 云连接、参数库、反哺推荐、订阅、合规六条线上最可能的事故推演一遍，每条给触发、传播、检测信号、止血、恢复、根治、演练</dd>
+    <dt>与 BL1 预推演的关系</dt><dd>docs/incident-premortem-bl1.md 的 27 条对设备侧与平台侧仍然全部适用；本文只写 BL4 新增的 26 条。分级、处置四原则、临时关闭登记表沿用 BL1 §0 与 §10，不重复</dd>
+    <dt>编号</dt><dd>INC-4-xx，避免与 BL1 的 INC-xx 冲突</dd>
+  </dl>
+  <nav class="toc">
+    <p>目录</p>
+    <ol>
+      <li><a href="#1-事故清单总览">事故清单总览</a></li>
+      <li><a href="#2-app-入口">App 入口</a></li>
+      <li><a href="#3-xcs-云连接">XCS 云连接</a></li>
+      <li><a href="#4-参数库">参数库</a></li>
+      <li><a href="#5-反哺与推荐">反哺与推荐</a></li>
+      <li><a href="#6-订阅-p2">订阅（P2）</a></li>
+      <li><a href="#7-合规">合规</a></li>
+      <li><a href="#8-bl4-特有的临时关闭项模板">BL4 特有的临时关闭项模板</a></li>
+      <li><a href="#9-演练计划">演练计划</a></li>
+      <li><a href="#10-p0-出口前必须补齐的能力">P0 出口前必须补齐的能力</a></li>
+    </ol>
+  </nav>
+</header>
+
+<p><strong>BL4 事故的三个特征</strong></p>
+<ol>
+<li><strong>影响面是用户而不是设备</strong>。设备侧闭环不受影响，机器照常停机；但用户看不到、控制不了、或者被错误的参数误导。</li>
+<li><strong>扩散速度快</strong>。参数库发布 10 分钟到全量客户端，App 发版数小时到大部分用户。止血手段首先是「回滚版本」，其次才是修。</li>
+<li><strong>合规事故不可逆</strong>。未同意的数据一旦写入、他人设备一旦被看到，删除也不能撤销「已发生」。这类事故检测靠对账，不靠用户投诉。</li>
+</ol>
+
+<h2 id="1-事故清单总览"><span class="no">01</span>事故清单总览</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>事故</th>
+<th>线</th>
+<th>级别</th>
+<th>第一检测信号</th>
+<th>止血时限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#inc-4-01-bff-轮询风暴"><code>INC-4-01</code></a></td>
+<td>BFF 轮询风暴：App 版本去掉退避或前后台判断失效</td>
+<td>入口</td>
+<td><span class="f f2">S2</span></td>
+<td>BFF QPS 陡升、429 比例、PG 连接数</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-02-账号体系故障"><code>INC-4-02</code></a></td>
+<td>账号体系故障：全部用户无法登录，入口全灭</td>
+<td>入口</td>
+<td><span class="f f2">S2</span></td>
+<td>登录成功率 &lt; 50%</td>
+<td>依赖集团</td>
+</tr>
+<tr>
+<td><a href="#inc-4-03-授权越权"><code>INC-4-03</code></a></td>
+<td>授权越权：BFF 漏校验 SN 归属，遍历 SN 可看他人设备</td>
+<td>入口</td>
+<td><span class="f f3">S1</span></td>
+<td>单用户访问 SN 数异常；404 比例</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-4-04-解绑后仍可控"><code>INC-4-04</code></a></td>
+<td>解绑后仍可控：绑定缓存 60 s 未失效</td>
+<td>入口</td>
+<td><span class="f f2">S2</span></td>
+<td>解绑后 cmd_audit 出现该用户操作</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-05-指令重复执行"><code>INC-4-05</code></a></td>
+<td>指令重复执行：幂等键缺失加网络重试</td>
+<td>入口</td>
+<td><span class="f f2">S2</span></td>
+<td>同 user 同 sn 同 action 1 s 内两条审计</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-06-隐私开关显示错误"><code>INC-4-06</code></a></td>
+<td>隐私开关显示错误：以 desired 显示，用户以为已关</td>
+<td>入口</td>
+<td><span class="f f3">S1</span></td>
+<td>reported 与界面显示不一致的对账</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-4-07-app-发版崩溃"><code>INC-4-07</code></a></td>
+<td>App 发版崩溃：告警中心打不开</td>
+<td>入口</td>
+<td><span class="f f2">S2</span></td>
+<td>崩溃率 &gt; 0.5%，集中在新版本</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-4-08-推送-token-失效"><code>INC-4-08</code></a></td>
+<td>推送 token 失效：告警推送到不了新装机或换机用户</td>
+<td>入口</td>
+<td><span class="f f3">S1</span></td>
+<td>推送供应商 invalid token 比例</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-09-xcs-云调用阻塞本地加工"><code>INC-4-09</code></a></td>
+<td>XCS 云调用阻塞本地加工</td>
+<td>XCS</td>
+<td><span class="f f2">S2</span></td>
+<td>XCS 加工开始延迟 P95 上升，云超时率</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-10-任务元数据泄露图纸信息"><code>INC-4-10</code></a></td>
+<td>任务元数据泄露图纸信息：文件名或参数原文进事件</td>
+<td>XCS</td>
+<td><span class="f f3">S1</span></td>
+<td>events 字段长度与内容审计</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-4-11-云端下发任务到作业中设备-p1"><code>INC-4-11</code></a></td>
+<td>云端下发任务到作业中设备（P1）</td>
+<td>XCS</td>
+<td><span class="f f2">S2</span></td>
+<td>JOB_START 与前一任务未 DONE 重叠</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-12-预签名-url-泄露或未过期-p1"><code>INC-4-12</code></a></td>
+<td>预签名 URL 泄露或未过期：图纸可被下载（P1）</td>
+<td>XCS</td>
+<td><span class="f f3">S1</span></td>
+<td>对象存储访问日志异常来源</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-4-13-参数库发布错误全量扩散"><code>INC-4-13</code></a></td>
+<td>参数库发布错误全量扩散</td>
+<td>参数</td>
+<td><span class="f f3">S1</span></td>
+<td>发布后 JOB_FAIL、burnt 标记、工单突增</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-14-增量同步顺序错误"><code>INC-4-14</code></a></td>
+<td>增量同步顺序错误：客户端库损坏回退内置旧版本</td>
+<td>参数</td>
+<td><span class="f f2">S2</span></td>
+<td>客户端 version 分布出现大量回退</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-15-cdn-快照与-api-版本不一致"><code>INC-4-15</code></a></td>
+<td>CDN 快照与 API 版本不一致</td>
+<td>参数</td>
+<td><span class="f f1">S3</span></td>
+<td>latest 版本与快照内 version 不等</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-16-自定义参数多端覆盖丢失"><code>INC-4-16</code></a></td>
+<td>自定义参数多端覆盖丢失</td>
+<td>参数</td>
+<td><span class="f f1">S3</span></td>
+<td>用户投诉；updated_at 倒退</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-4-17-module_model-错误"><code>INC-4-17</code></a></td>
+<td>module_model 错误：拿到别的模块的参数</td>
+<td>参数</td>
+<td><span class="f f2">S2</span></td>
+<td>同 SN reported.module_model 与手选不一致</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-4-18-未-opt-in-数据被写入"><code>INC-4-18</code></a></td>
+<td>未 opt-in 数据被写入</td>
+<td>反哺</td>
+<td><span class="f f3">S1</span></td>
+<td>job_record 与影子 optin=false 的对账</td>
+<td>立即</td>
+</tr>
+<tr>
+<td><a href="#inc-4-19-推荐档导致烧材或安全事件"><code>INC-4-19</code></a></td>
+<td>推荐档导致烧材或安全事件</td>
+<td>推荐</td>
+<td><span class="f f3">S1</span></td>
+<td>推荐档关联 FLAME / OVER_TEMP 比例</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-20-校正系数计算错误"><code>INC-4-20</code></a></td>
+<td>校正系数计算错误把功率推到上限</td>
+<td>推荐</td>
+<td><span class="f f2">S2</span></td>
+<td>k_power 分布集中在 1.25</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-21-反哺被刷偏"><code>INC-4-21</code></a></td>
+<td>反哺被刷偏：少数设备大量标记</td>
+<td>推荐</td>
+<td><span class="f f1">S3</span></td>
+<td>单 hash 标记来源集中度</td>
+<td>24 h</td>
+</tr>
+<tr>
+<td><a href="#inc-4-22-job-svc-挂或-lag"><code>INC-4-22</code></a></td>
+<td>job-svc 挂或 lag：记录缺失，标记接口 404</td>
+<td>反哺</td>
+<td><span class="f f1">S3</span></td>
+<td>consumer pending 增长</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><a href="#inc-4-23-entitlement-误伤安全接口"><code>INC-4-23</code></a></td>
+<td>entitlement 误伤安全接口（P2）</td>
+<td>订阅</td>
+<td><span class="f f3">S1</span></td>
+<td>依赖扫描；冒烟五步失败</td>
+<td>立即回滚</td>
+</tr>
+<tr>
+<td><a href="#inc-4-24-支付回调重复或丢失"><code>INC-4-24</code></a></td>
+<td>支付回调重复或丢失：已付费无权益或退款仍有权益（P2）</td>
+<td>订阅</td>
+<td><span class="f f2">S2</span></td>
+<td>subscription 与支付平台对账差</td>
+<td>1 h</td>
+</tr>
+<tr>
+<td><a href="#inc-4-25-订阅提醒弹在加工进行中"><code>INC-4-25</code></a></td>
+<td>订阅提醒弹在加工进行中（P2）</td>
+<td>订阅</td>
+<td><span class="f f1">S3</span></td>
+<td>用户投诉</td>
+<td>下个版本</td>
+</tr>
+<tr>
+<td><a href="#inc-4-26-撤回-opt-in-后数据未删除"><code>INC-4-26</code></a></td>
+<td>撤回 opt-in 后数据未删除</td>
+<td>合规</td>
+<td><span class="f f2">S2</span></td>
+<td>每日对账：optin=false 但 job_record 有行</td>
+<td>24 h 内</td>
+</tr>
+</tbody>
+</table></div>
+
+<h2 id="2-app-入口"><span class="no">02</span>App 入口</h2>
+<h3 id="inc-4-01-bff-轮询风暴"><code>INC-4-01</code> BFF 轮询风暴</h3>
+<p><b class="k">触发</b>App 某版本的设备卡片轮询在后台未停止，或去掉了 5 s 间隔改为响应即请求；或 304 路径意外走到 PG。</p>
+<p><b class="k">传播</b>BFF QPS 数倍增长 → 若 304 路径查 PG 则连接池满 → deviceapi 与 auth-svc 若共用 PG 一起变慢 → 进入 BL1 INC-02 认证全拒形态。</p>
+<p><b class="k">检测信号</b>BFF 每用户请求数 P99 &gt; 1 rps 持续 5 分钟；429 比例 &gt; 5%；PG active connections 接近上限；304 比例下降。</p>
+<p><strong>止血</strong></p>
+<ol>
+<li>确认 user_id + path 限流在工作（429 在涨）。在工作则 PG 应无压力，只是客户端体验差。</li>
+<li>若 PG 有压力：说明 304 路径查了 PG，立刻把影子版本比对切到只查 Redis（应急开关），登记。</li>
+<li>按 App 版本号灰度下线：BFF 对该 User-Agent 版本返回 <code>Retry-After: 30</code>，逼客户端退避。</li>
+</ol>
+<p><b class="k">恢复</b>发 App 热修版本；老版本强制升级提示。</p>
+<p><b class="k">根治</b>304 路径代码审查项「只允许 Redis」；客户端轮询逻辑单测覆盖前后台切换；BFF 对每个 App 版本的请求速率分布进看板，新版本灰度期间自动比对。</p>
+<p><b class="k">演练</b>模拟客户端以 20 rps 轮询单设备，验证 429 与 PG 连接数不变。</p>
+
+<h3 id="inc-4-02-账号体系故障"><code>INC-4-02</code> 账号体系故障</h3>
+<p><b class="k">触发</b>集团账号服务不可用或 token 校验接口超时。</p>
+<p><b class="k">传播</b>App 与 XCS 全部无法登录 → 已登录用户的 token 在 BFF 校验失败 → 入口全灭。<strong>安全告警推送不受影响</strong>：推送走设备 → alarm-svc → 推送供应商，不经过登录；用户点开推送后进 App 才会失败。</p>
+<p><b class="k">检测信号</b>登录成功率 &lt; 50%；BFF 401 比例陡升。</p>
+<p><strong>止血</strong></p>
+<ol>
+<li>BFF 对已签发且未过期的 token 启用<strong>本地验签兜底</strong>（JWT 公钥本地缓存，不回源），登记。这是 fail-open 的一种，只对已持有 token 的用户放行，新登录仍失败。</li>
+<li>推送文案增加设备关键信息（事件类型、时间、SN 后四位），让用户不进 App 也知道机器停了。</li>
+</ol>
+<p><b class="k">根治</b>token 本地验签为常态而非兜底；账号服务多活由集团负责，BL4 只保证降级路径。</p>
+
+<h3 id="inc-4-03-授权越权"><code>INC-4-03</code> 授权越权</h3>
+<p><b class="k">触发</b>BFF 某接口新增时忘记挂绑定校验中间件；或校验用了客户端传的 user_id 而非 token 解析的。</p>
+<p><b class="k">传播</b>任何登录用户构造 SN 即可看他人影子、告警、快照，甚至下指令。<strong>这是 BL4 最严重的事故</strong>，涉及隐私与安全。</p>
+<p><strong>检测信号</strong></p>
+<ul>
+<li>单 user_id 在 1 小时内访问的不同 SN 数 &gt; 其绑定数 × 2。</li>
+<li>对未绑定 SN 的请求应 100% 返回 404；若某路由 404 比例为 0 而请求量正常，该路由可能漏校验。</li>
+<li>每次发版 CI 跑「越权测试」：用 A 的 token 访问 B 的 SN，所有 <code>/devices/{sn}/*</code> 路由必须 404。</li>
+</ul>
+<p><b class="k">止血</b>立即下线该路由或整个 BFF 版本回滚；从访问日志导出被越权访问的 SN 与 user_id 清单交法务与客服。</p>
+<p><b class="k">根治</b>绑定校验作为路由组级中间件强制挂载，新增路由默认继承，无法绕过；user_id 只能来自 token；越权测试进 CI 阻断合并。</p>
+
+<h3 id="inc-4-04-解绑后仍可控"><code>INC-4-04</code> 解绑后仍可控</h3>
+<p><b class="k">触发</b>BFF 的 <code>binding:{user_id}:{sn}</code> 缓存 60 s TTL，解绑接口没有主动删缓存，或多副本本地缓存未同步。</p>
+<p><b class="k">传播</b>转让二手机后，原 owner 在 60 秒内仍能看状态、下指令。</p>
+<p><b class="k">检测信号</b>cmd_audit 中操作时间晚于该 user 对该 SN 的 unbound_at。每日对账。</p>
+<p><b class="k">止血</b>解绑接口补主动删 Redis 缓存；多副本用 Redis 而非进程内缓存。</p>
+<p><b class="k">根治</b>授权缓存只放 Redis，解绑事务内删；对账 SQL 进每日任务，出现即告警。</p>
+
+<h3 id="inc-4-05-指令重复执行"><code>INC-4-05</code> 指令重复执行</h3>
+<p><b class="k">触发</b>客户端未带 Idempotency-Key，网络超时后自动重试；或 BFF 幂等键 Redis 故障时放行。</p>
+<p><b class="k">传播</b>pause 两次幂等无害；stop 两次第二次 fail 无害；P1 的 job_start 两次则重复加工，材料报废。</p>
+<p><b class="k">检测信号</b>同 user 同 sn 同 action 在 1 s 内两条 cmd_audit。</p>
+<p><b class="k">止血</b>BFF 对 job_start 在 Redis 不可用时<strong>拒绝</strong>而非放行（不可逆动作 fail-closed）；pause / stop 可放行。</p>
+<p><b class="k">根治</b>客户端必带幂等键（BFF 对无键的写请求 400）；不可逆动作的幂等判定以 PG 唯一约束兜底：<code>job_record(sn, started_at)</code> 5 秒内唯一。</p>
+
+<h3 id="inc-4-06-隐私开关显示错误"><code>INC-4-06</code> 隐私开关显示错误</h3>
+<p><b class="k">触发</b>客户端或 BFF 用 desired 值渲染开关，设备离线或未收敛时界面显示「已关」而设备仍开着摄像头云存储。</p>
+<p><b class="k">传播</b>用户基于错误显示做出判断；一旦被发现是系统性问题，就是合规事故。</p>
+<p><b class="k">检测信号</b>对账任务比对界面上报的显示值（客户端埋点 <code>switch_shown</code>）与影子 reported；不一致比例 &gt; 0 告警。</p>
+<p><b class="k">止血</b>客户端热修强制以 reported 渲染；未收敛显示「同步中」。</p>
+<p><b class="k">根治</b>BFF 的 shadow 接口对开关类字段直接返回三态 <code>{value, state: applied|pending|offline}</code>，客户端只渲染 state，不自己比较。</p>
+
+<h3 id="inc-4-07-app-发版崩溃"><code>INC-4-07</code> App 发版崩溃</h3>
+<p><b class="k">触发</b>新版本在特定机型或系统版本崩溃，告警中心或设备卡片打不开。</p>
+<p><b class="k">传播</b>用户收到推送点开即崩溃，看不到告警详情与「我已处理」。设备已停机，安全不受影响，但升级短信会在 10 分钟后触发。</p>
+<p><b class="k">检测信号</b>崩溃率 &gt; 0.5% 且集中于新版本；崩溃堆栈聚类。</p>
+<p><b class="k">止血</b>应用商店暂停该版本分发；服务端对该版本返回精简数据（去掉可能触发崩溃的字段）。</p>
+<p><b class="k">根治</b>分阶段发布（1% → 10% → 100%）与自动回滚阈值；告警详情页做成最小依赖的独立路由。</p>
+
+<h3 id="inc-4-08-推送-token-失效"><code>INC-4-08</code> 推送 token 失效</h3>
+<p><b class="k">触发</b>用户换机、重装或系统清理后推送 token 变化，App 未及时上报新 token；或推送服务端未处理供应商返回的 invalid token。</p>
+<p><b class="k">传播</b>这类用户收不到任何告警推送，包括火焰事件。是 BL1 INC-10 漏告警在客户端侧的形态。</p>
+<p><b class="k">检测信号</b>推送供应商回执 invalid / unregistered token 比例 &gt; 2%；有绑定设备但 30 天无有效 token 的用户数。</p>
+<p><b class="k">止血</b>对 invalid token 用户立即降级到短信通道（不等 10 分钟）；App 启动时强制刷新 token。</p>
+<p><b class="k">根治</b>token 上报失败时 App 阻断进入主页并重试；服务端每日清理 invalid token 并标记用户「推送不可达」，告警升级策略对这类用户跳过推送直接短信。</p>
+
+<h2 id="3-xcs-云连接"><span class="no">03</span>XCS 云连接</h2>
+<h3 id="inc-4-09-xcs-云调用阻塞本地加工"><code>INC-4-09</code> XCS 云调用阻塞本地加工</h3>
+<p><b class="k">触发</b>设备列表接口在加工开始前同步调用；或云端慢但未超时（2.9 s 一直在超时边缘）；或静默期逻辑 bug。</p>
+<p><b class="k">传播</b>用户点「开始加工」后等待数秒；老用户认为联网让软件变慢，关闭云功能或流失。</p>
+<p><b class="k">检测信号</b>XCS APM「点击开始到设备收到指令」P95 上升；云调用耗时分布贴近超时值。</p>
+<p><b class="k">止血</b>服务端下发功能开关关闭 XCS 云功能（客户端每次启动拉取开关）；客户端静默期强制生效。</p>
+<p><b class="k">根治</b>云调用全部异步且不在加工关键路径，代码审查项；超时值按 P99 的 2 倍设定而不是拍脑袋；加工开始延迟作为 XCS 发版门禁指标。</p>
+
+<h3 id="inc-4-10-任务元数据泄露图纸信息"><code>INC-4-10</code> 任务元数据泄露图纸信息</h3>
+<p><b class="k">触发</b>XCS 把文件名（如「客户 X 订单 Logo.xcs」）或参数原文放进 job 元数据；或 params_hash 规范化前的 JSON 被误传。</p>
+<p><b class="k">传播</b>events 表与 job_record 中出现用户文件名，违反「图纸不上云」承诺。</p>
+<p><b class="k">检测信号</b>events 的 job 相关字段长度分布（job_id 应恒为 36，material_id 与 param_profile_id 为已知 id 集合，params_hash 恒为 64）；任何不符即告警。</p>
+<p><b class="k">止血</b>job-svc 对四个字段做格式白名单校验，不符直接丢弃并计数；已落库的异常行删除并留日志。</p>
+<p><b class="k">根治</b>设备端与 job-svc 双重格式校验；XCS 侧字段来源只能是 id 与 hash，不允许自由文本；数据字典审计进发版流程。</p>
+
+<h3 id="inc-4-11-云端下发任务到作业中设备-p1"><code>INC-4-11</code> 云端下发任务到作业中设备（P1）</h3>
+<p><b class="k">触发</b>BFF 读影子 work_state==0 后设备本地又开始了任务，云端 job_start 到达时设备正在加工；或影子 30 s 新鲜度内状态已变。</p>
+<p><b class="k">传播</b>设备若不做本地校验会中断当前任务开始新任务，材料报废甚至安全风险。</p>
+<p><b class="k">检测信号</b>同 SN 两个 JOB_START 之间无 JOB_DONE / JOB_FAIL。</p>
+<p><b class="k">止血</b>设备端对 job_start 做本地校验：非空闲一律拒绝并回 cmd_ack fail。<strong>云端校验只是减少无效下发，设备端校验才是安全边界</strong>。</p>
+<p><b class="k">根治</b>job_start 的设备端拒绝逻辑列为固件红线；云端在 deviceapi 白名单判定中同时读影子，双保险。</p>
+
+<h3 id="inc-4-12-预签名-url-泄露或未过期-p1"><code>INC-4-12</code> 预签名 URL 泄露或未过期（P1）</h3>
+<p><b class="k">触发</b>预签名 GET URL 有效期误设为 24 h 而非 1 h；URL 被记入客户端日志或崩溃报告上传；对象未按生命周期删除。</p>
+<p><b class="k">传播</b>持有 URL 者可下载用户图纸。</p>
+<p><b class="k">检测信号</b>对象存储访问日志中同一对象被多个来源 IP 下载；生命周期删除失败计数。</p>
+<p><b class="k">止血</b>吊销对象（删除）；轮换签名密钥使所有未过期 URL 失效。</p>
+<p><b class="k">根治</b>GET URL 有效期 ≤ 1 h 且一次性（下载后设备回 ack 即删除对象）；URL 不进任何日志（日志脱敏规则）；生命周期删除对账。</p>
+
+<h2 id="4-参数库"><span class="no">04</span>参数库</h2>
+<h3 id="inc-4-13-参数库发布错误全量扩散"><code>INC-4-13</code> 参数库发布错误全量扩散</h3>
+<p><b class="k">触发</b>运营录入功率单位错误（百分比填成毫瓦）、材料 id 对错、或发布脚本把测试库发到生产。发布后 10 分钟内全量客户端可见。</p>
+<p><b class="k">传播</b>用户按错误参数加工 → 切不透或烧焦 → 严重时功率过高引发火焰事件 → JOB_FAIL 与 burnt 标记突增 → 客服工单。</p>
+<p><strong>检测信号</strong>（任一）</p>
+<ul>
+<li>发布后 30 分钟内该 product_key 的 JOB_FAIL 率较发布前 24 小时均值上升 &gt; 50%。</li>
+<li>burnt / uncut 标记率上升 &gt; 50%（opt-in 样本）。</li>
+<li>发布前自动校验：新旧版本同材料参数差异 &gt; 30% 的条目数 &gt; 10 需人工确认。</li>
+</ul>
+<p><strong>止血（5 分钟内）</strong></p>
+<pre><code>POST /internal/params/releases {product_key, rollback_to: &lt;上一个 version&gt;}   → 生成新 version，内容等于旧版本
+客户端下次同步（前台 5 min，启动即拉）拿到回滚版本
+对已打开 XCS 的用户：服务端推送「参数库有紧急更新」强制同步
+</code></pre>
+<p><b class="k">根治</b>发布前差异校验与阈值；发布走灰度（先 1% 客户端 24 h 再全量，客户端按 user_id hash 分桶）；单位与范围在 param_profile 上做 CHECK（功率 0 到 100、速度正数）；测试库与生产库物理隔离，发布脚本不接受跨环境参数。</p>
+<p><b class="k">演练</b>staging 发布一个明显错误的版本，验证差异校验拦截；绕过拦截后验证回滚 ≤ 5 min 到达客户端。</p>
+
+<h3 id="inc-4-14-增量同步顺序错误"><code>INC-4-14</code> 增量同步顺序错误</h3>
+<p><b class="k">触发</b>客户端先应用 added 再应用 removed，而某条目在同一增量中先删后加（回滚场景常见）；或跨多个版本的增量合并逻辑错误。</p>
+<p><b class="k">传播</b>客户端本地库缺条目或有重复 → sha256 校验失败 → 回退内置出厂版本（可能很老）→ 用户拿到过时参数但不知情。</p>
+<p><b class="k">检测信号</b>客户端上报 version 分布出现大量回退到出厂版本；sync 失败率上升。</p>
+<p><b class="k">止血</b>服务端对该客户端版本返回 <code>force_full: true</code>，跳过增量直接全量。</p>
+<p><b class="k">根治</b>增量协议明确顺序（先 removed 后 added）并在服务端生成时保证同一条目不同时出现；客户端增量应用单测覆盖回滚场景；落后 &gt; 20 版本强制全量已在方案中。</p>
+
+<h3 id="inc-4-15-cdn-快照与-api-版本不一致"><code>INC-4-15</code> CDN 快照与 API 版本不一致</h3>
+<p><b class="k">触发</b>新版本发布后 CDN 仍缓存旧快照；或快照上传失败但 release 已写入。</p>
+<p><b class="k">传播</b>全量同步的客户端拿到旧快照但记录了新 version，之后增量从新 version 开始，永久缺一段变更。</p>
+<p><b class="k">检测信号</b>快照文件内嵌 version 与 URL 中的 version 或 API latest 不等；客户端校验快照内 version 后上报不一致计数。</p>
+<p><b class="k">止血</b>CDN 主动刷新；对不一致的客户端返回 force_full。</p>
+<p><b class="k">根治</b>快照 URL 带 version（<code>/params/LM_S1/v123.json</code>）永不复用，缓存策略 immutable；release 写入放在快照上传成功之后（同一事务顺序）；客户端校验快照内 version 必须等于请求的 version。</p>
+
+<h3 id="inc-4-16-自定义参数多端覆盖丢失"><code>INC-4-16</code> 自定义参数多端覆盖丢失</h3>
+<p><b class="k">触发</b>用户在 XCS 与 App 都改了同一条自定义参数，最后写入胜出把另一端的改动覆盖；或时钟不同步导致新改动被旧改动覆盖。</p>
+<p><b class="k">传播</b>用户辛苦调出的参数丢失，投诉。</p>
+<p><b class="k">检测信号</b>user_param.updated_at 出现倒退；用户投诉。</p>
+<p><b class="k">止血</b>保留每条自定义参数最近 10 个版本，客户端可恢复。</p>
+<p><b class="k">根治</b>乐观锁：PUT 带 <code>If-Match: &lt;server_version&gt;</code>，冲突返回 409 让客户端合并；不用客户端时钟。</p>
+
+<h3 id="inc-4-17-module_model-错误"><code>INC-4-17</code> module_model 错误</h3>
+<p><b class="k">触发</b>固件上报的 module_model 与实际模块不符（换模块后未重启上报）；或 P0 手选时用户选错。</p>
+<p><b class="k">传播</b>参数库按错误模块索引，40 W 模块拿到 10 W 参数切不透，或反过来烧焦。</p>
+<p><b class="k">检测信号</b>同 SN reported.module_model 与用户手选不一致；同 SN 短期内 module_model 变化。</p>
+<p><b class="k">止血</b>客户端参数面板显著显示当前模块型号，与机器铭牌对照的提示。</p>
+<p><b class="k">根治</b>模块热插拔检测后立即上报；手选值与上报值不一致时界面强提醒并以上报值为准；参数档带适用模块的功率上限，跨模块使用时提示。</p>
+
+<h2 id="5-反哺与推荐"><span class="no">05</span>反哺与推荐</h2>
+<h3 id="inc-4-18-未-opt-in-数据被写入"><code>INC-4-18</code> 未 opt-in 数据被写入</h3>
+<p><b class="k">触发</b>job-svc 校验影子时 Redis 不可用而放行；或设备端未按 optin 清空字段且服务端校验有 bug；或影子字段名不一致（camera 开关误当反哺开关）。</p>
+<p><b class="k">传播</b>用户明确未同意的加工记录进入 job_record，合规事故，需通知用户与监管。</p>
+<p><b class="k">检测信号</b>每日对账：<code>job_record</code> 中 SN 的影子 reported.job_feedback_optin 为 false 或缺失的行数 &gt; 0。</p>
+<p><b class="k">止血</b>job-svc 对影子不可读时<strong>丢弃</strong>（fail-closed，与 cf001 nonce 同一方向：合规校验不放行）；删除违规行并留删除日志；法务评估是否需通知。</p>
+<p><b class="k">根治</b>opt-in 校验的 Redis 出错即丢弃并计数；设备端不填字段是第一道；对账任务 P0 必上；字段名在物模型 v1.1 中固定并单测。</p>
+
+<h3 id="inc-4-19-推荐档导致烧材或安全事件"><code>INC-4-19</code> 推荐档导致烧材或安全事件</h3>
+<p><b class="k">触发</b>推荐档来自某批用户在通风好、材料薄的环境下的高功率参数，普通用户使用后烧焦；极端情况下引发火焰事件。</p>
+<p><b class="k">传播</b>用户信任「官方推荐」而不再试切；一次烧材就是一次差评，一次火焰就是安全事故。</p>
+<p><b class="k">检测信号</b>§9.3 每日安全关联：使用该档任务中 FLAME / OVER_TEMP 比例 &gt; 同材料官方档 2 倍且绝对数 ≥ 3；burnt 标记率 &gt; 30%。</p>
+<p><strong>止血</strong></p>
+<ol>
+<li>立即对该档发布 <code>version_removed</code>，客户端下次同步消失；已选中该档的 XCS 会话提示「该推荐已下线」。</li>
+<li>从 job_record 拉出使用过该档的 SN 列表，通知用户。</li>
+</ol>
+<p><b class="k">根治</b>推荐档功率不得超过同材料官方档的 110%（硬上限）；推荐档界面标注样本数与「社区统计，请先试切」；安全关联从每日改为每小时；推荐档灰度（先 10% 用户可见）。</p>
+
+<h3 id="inc-4-20-校正系数计算错误"><code>INC-4-20</code> 校正系数计算错误</h3>
+<p><b class="k">触发</b>health 字段单位理解错误（0 到 1 当成 0 到 100）；laser_hours 降采样缺失当成 0 或极大值；配置 a、b、c 填错。</p>
+<p><b class="k">传播</b>k_power 对大量设备算出 1.25 上限，功率普遍上调 25%，烧材风险。</p>
+<p><b class="k">检测信号</b>k_power 分布：正常应集中在 1.0 到 1.1；&gt; 20% 设备落在上限即告警。校正输入缺失计数。</p>
+<p><b class="k">止血</b>全局开关关闭校正（接口返回 k=1 与原因「校正暂停」），客户端自动回官方档。</p>
+<p><b class="k">根治</b>输入缺失时返回 k=1 而不是计算；配置变更走与参数发布同样的双人审批与灰度；系数分布进看板并设自动关闭阈值。</p>
+
+<h3 id="inc-4-21-反哺被刷偏"><code>INC-4-21</code> 反哺被刷偏</h3>
+<p><b class="k">触发</b>少数用户或脚本对某参数 hash 批量标记 good，把不合适的参数推成推荐档；或竞品恶意标记官方档 burnt。</p>
+<p><b class="k">传播</b>推荐档质量下降；若与 INC-4-19 叠加则更危险。</p>
+<p><b class="k">检测信号</b>单 hash 的 good 标记中 top 3 设备贡献 &gt; 50%；单设备日标记数 &gt; 20；标记与 job_record 时间不匹配（无对应加工）。</p>
+<p><b class="k">止血</b>候选生成暂停该 hash；异常设备标记权重置 0。</p>
+<p><b class="k">根治</b>按 SN 去重与单日上限已在方案中；标记必须对应本设备 10 分钟内的 JOB_DONE；推荐样本要求来自 ≥ 30 台不同设备且分布在 ≥ 10 个不同用户。</p>
+
+<h3 id="inc-4-22-job-svc-挂或-lag"><code>INC-4-22</code> job-svc 挂或 lag</h3>
+<p><b class="k">触发</b>job-svc 全部副本挂；PG 分片库慢；JOB 事件量超预估。</p>
+<p><b class="k">传播</b>job_record 缺失 → 用户 JOB_DONE 后点标记接口返回 404 → 反哺数据丢失。遥测与告警不受影响（独立消费组）。</p>
+<p><b class="k">检测信号</b><code>nats consumer info IOT_UP job</code> pending 持续增长；标记接口 404 比例上升。</p>
+<p><b class="k">止血</b>拉起服务；pending 自动追（IOT_UP 保留 72 h）。标记接口对 job_record 不存在时返回 202 并暂存 <code>job_feedback_pending</code>，job_record 到达后合并。</p>
+<p><b class="k">根治</b>job-svc 至少 2 副本；标记暂存机制；job_record 按月分区避免大表慢写。</p>
+
+<h2 id="6-订阅-p2"><span class="no">06</span>订阅（P2）</h2>
+<h3 id="inc-4-23-entitlement-误伤安全接口"><code>INC-4-23</code> entitlement 误伤安全接口</h3>
+<p><b class="k">触发</b>某次重构把 entitlement 中间件挂到了路由组根上；或 deviceapi 引入了 entitlement 客户端包做「高级功能」判断。</p>
+<p><b class="k">传播</b>entitlement-svc 故障或未订阅用户的告警确认、停机、OTA 接口返回 403 或 5xx。这是 PRD 唯一不可协商约束的违反。</p>
+<p><b class="k">检测信号</b>CI 依赖扫描 <code>go list -deps</code> 发现 deviceapi / alarm-svc / ota-svc / job-svc / param-svc 依赖 entitlement 包即阻断；BFF 路由表审查；「entitlement 停机」冒烟用例失败。</p>
+<p><b class="k">止血</b>回滚引入依赖的版本。entitlement-svc 故障期间若已误伤，临时把 entitlement 中间件全局短路为放行（所有内容对所有人可见，商业损失可接受，安全不可接受），登记。</p>
+<p><b class="k">根治</b>三重锁定（依赖扫描、集中路由表、停机冒烟）全部进 CI 阻断；架构决策记录写明「任何人不得在安全路径引入订阅判断」。</p>
+
+<h3 id="inc-4-24-支付回调重复或丢失"><code>INC-4-24</code> 支付回调重复或丢失</h3>
+<p><b class="k">触发</b>支付平台回调重试导致同一订单两次处理（订阅期被延长两次）；或回调丢失导致已付费用户无权益。</p>
+<p><b class="k">传播</b>用户付费后看不到素材，投诉与退款；或平台多给权益，收入损失。</p>
+<p><b class="k">检测信号</b>每小时对账 subscription 与支付平台订单：状态不一致数 &gt; 0。</p>
+<p><b class="k">止血</b>人工按订单号补权益或修正；对账脚本自动修复明确可判定的情形。</p>
+<p><b class="k">根治</b>回调按 provider_ref 幂等（唯一约束）；主动轮询支付平台补偿丢失回调；权益由 subscription 派生而非回调直接写。</p>
+
+<h3 id="inc-4-25-订阅提醒弹在加工进行中"><code>INC-4-25</code> 订阅提醒弹在加工进行中</h3>
+<p><b class="k">触发</b>提醒逻辑只看订阅到期时间，不看设备状态。</p>
+<p><b class="k">传播</b>用户加工中被弹窗打断，误触导致 XCS 失焦；体验事故。</p>
+<p><b class="k">根治</b>任何非安全类弹窗在影子 work_state ∈ {1, 2} 时延后；这是客户端通用规则，不只订阅。</p>
+
+<h2 id="7-合规"><span class="no">07</span>合规</h2>
+<h3 id="inc-4-26-撤回-opt-in-后数据未删除"><code>INC-4-26</code> 撤回 opt-in 后数据未删除</h3>
+<p><b class="k">触发</b>desired 下发 false 但设备离线未回报，job-svc 以 reported 为准迟迟不触发删除；或删除任务失败无重试。</p>
+<p><b class="k">传播</b>用户撤回同意后数据仍在，超过 24 h 承诺。</p>
+<p><b class="k">检测信号</b>每日对账：desired.job_feedback_optin=false 超过 24 h 且 job_record 仍有行的 SN 数。</p>
+<p><b class="k">止血</b>手动删除；对账脚本自动执行删除并留日志。</p>
+<p><b class="k">根治</b>撤回删除以 <strong>desired</strong> 为触发（用户意图），不等 reported；删除任务幂等有重试；24 h SLA 在 20 h 时预警。注意这与「显示以 reported 为准」不矛盾：显示要保守，删除要积极。</p>
+
+<h2 id="8-bl4-特有的临时关闭项模板"><span class="no">08</span>BL4 特有的临时关闭项模板</h2>
+<p>沿用 BL1 §10 登记表，BL4 常见的临时关闭项：</p>
+<ul>
+<li>BFF 影子 304 路径切只查 Redis</li>
+<li>token 本地验签兜底</li>
+<li>XCS 云功能服务端开关关闭</li>
+<li>参数库回滚版本（本质是发布，不是关闭，但需登记原因）</li>
+<li>校正系数全局关闭 k=1</li>
+<li>entitlement 中间件全局短路放行</li>
+<li>job-svc 标记暂存模式</li>
+</ul>
+
+<h2 id="9-演练计划"><span class="no">09</span>演练计划</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>演练</th>
+<th>剧本</th>
+<th>对应事故</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P0 出口前</td>
+<td>越权测试</td>
+<td>A 的 token 访问 B 的全部 SN 路由</td>
+<td><a href="#inc-4-03-授权越权"><code>INC-4-03</code></a></td>
+</tr>
+<tr>
+<td>P0 出口前</td>
+<td>参数发布回滚</td>
+<td>staging 发错误版本 → 拦截 → 绕过 → 回滚计时</td>
+<td><a href="#inc-4-13-参数库发布错误全量扩散"><code>INC-4-13</code></a></td>
+</tr>
+<tr>
+<td>P0 出口前</td>
+<td>XCS 断云</td>
+<td>断网与云端 3 s 慢响应两种，测加工开始延迟</td>
+<td><a href="#inc-4-09-xcs-云调用阻塞本地加工"><code>INC-4-09</code></a></td>
+</tr>
+<tr>
+<td>P0 出口前</td>
+<td>隐私开关三态</td>
+<td>设备离线 / 未收敛 / 已收敛下的显示</td>
+<td><a href="#inc-4-06-隐私开关显示错误"><code>INC-4-06</code></a></td>
+</tr>
+<tr>
+<td>P0 出口前</td>
+<td>轮询风暴</td>
+<td>模拟客户端 20 rps</td>
+<td><a href="#inc-4-01-bff-轮询风暴"><code>INC-4-01</code></a></td>
+</tr>
+<tr>
+<td>P1</td>
+<td>opt-in 对账</td>
+<td>注入 optin=false 设备的 JOB 事件，验证丢弃与对账</td>
+<td><a href="#inc-4-18-未-opt-in-数据被写入"><code>INC-4-18</code></a></td>
+</tr>
+<tr>
+<td>P1</td>
+<td>推荐档下线</td>
+<td>注入与 FLAME 关联的推荐档，验证自动 version_removed</td>
+<td><a href="#inc-4-19-推荐档导致烧材或安全事件"><code>INC-4-19</code></a></td>
+</tr>
+<tr>
+<td>P1</td>
+<td>校正关闭</td>
+<td>配置错误 → k 分布告警 → 全局关闭</td>
+<td><a href="#inc-4-20-校正系数计算错误"><code>INC-4-20</code></a></td>
+</tr>
+<tr>
+<td>P2</td>
+<td>entitlement 停机</td>
+<td>停 entitlement-svc 跑冒烟五步</td>
+<td><a href="#inc-4-23-entitlement-误伤安全接口"><code>INC-4-23</code></a></td>
+</tr>
+<tr>
+<td>每月</td>
+<td>推送 token 巡检</td>
+<td>invalid token 比例与短信降级</td>
+<td><a href="#inc-4-08-推送-token-失效"><code>INC-4-08</code></a></td>
+</tr>
+</tbody>
+</table></div>
+
+<h2 id="10-p0-出口前必须补齐的能力"><span class="no">10</span>P0 出口前必须补齐的能力</h2>
+<div class="tablebox"><table>
+<thead>
+<tr>
+<th>能力</th>
+<th>对应事故</th>
+<th>优先级</th>
+<th>状态（2026-09-19）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>越权测试进 CI 阻断；绑定校验为路由组级强制中间件</td>
+<td><a href="#inc-4-03-授权越权"><code>INC-4-03</code></a></td>
+<td>P0</td>
+<td>BFF 侧，不在本仓库；同类做法已在 fleet-svc 落地（路由组中间件 + 越权单测）</td>
+</tr>
+<tr>
+<td>授权缓存只放 Redis，解绑事务内删</td>
+<td><a href="#inc-4-04-解绑后仍可控"><code>INC-4-04</code></a></td>
+<td>P0</td>
+<td>BFF 侧，不在本仓库</td>
+</tr>
+<tr>
+<td>影子接口返回开关三态，客户端只渲染 state</td>
+<td><a href="#inc-4-06-隐私开关显示错误"><code>INC-4-06</code></a></td>
+<td>P0</td>
+<td>已实现 deviceapi BuildSwitches/SwitchState，冒烟验证 applied 态</td>
+</tr>
+<tr>
+<td>参数发布前差异校验、CHECK 约束、灰度分桶、快照 URL 带版本且 immutable</td>
+<td>INC-4-13 INC-4-15</td>
+<td>P0</td>
+<td>已实现 DiffValidate、ck_profile_params、Bucket 灰度、快照 immutable，实机验证四项</td>
+</tr>
+<tr>
+<td>增量协议顺序固定，客户端增量单测覆盖回滚</td>
+<td><a href="#inc-4-14-增量同步顺序错误"><code>INC-4-14</code></a></td>
+<td>P0</td>
+<td>服务端已实现 removed 先于 added 与 RollbackPlan；客户端单测在 App 侧</td>
+</tr>
+<tr>
+<td>BFF 304 路径只查 Redis，代码审查项</td>
+<td><a href="#inc-4-01-bff-轮询风暴"><code>INC-4-01</code></a></td>
+<td>P0</td>
+<td>param-svc 的 ETag/304 已实现；BFF 侧不在本仓库</td>
+</tr>
+<tr>
+<td>XCS 云调用异步化与服务端功能开关</td>
+<td><a href="#inc-4-09-xcs-云调用阻塞本地加工"><code>INC-4-09</code></a></td>
+<td>P0</td>
+<td>客户端侧，不在本仓库</td>
+</tr>
+<tr>
+<td>job 元数据字段格式白名单（设备端与 job-svc 双校验）</td>
+<td><a href="#inc-4-10-任务元数据泄露图纸信息"><code>INC-4-10</code></a></td>
+<td>P0（字段随 P0 进固件）</td>
+<td>已实现：模拟器 opt-in 为 false 时不填字段，job-svc ValidateJobFields 再校验</td>
+</tr>
+<tr>
+<td>推送 invalid token 处理与短信降级</td>
+<td><a href="#inc-4-08-推送-token-失效"><code>INC-4-08</code></a></td>
+<td>P0</td>
+<td>未做：推送在 App 与供应商侧</td>
+</tr>
+<tr>
+<td>opt-in 校验 fail-closed 与每日对账</td>
+<td>INC-4-18 INC-4-26</td>
+<td>P1 起</td>
+<td>已实现 fail-closed（Redis 出错也丢弃，计 dropped_optin_err）与撤回 purge；每日对账未做</td>
+</tr>
+<tr>
+<td>推荐档功率上限 110%、安全关联每小时、推荐灰度</td>
+<td><a href="#inc-4-19-推荐档导致烧材或安全事件"><code>INC-4-19</code></a></td>
+<td>P1</td>
+<td>功率上限与安全关联已实现（WithinPowerCap / SafetyUnpublish）；改每小时与推荐灰度未做</td>
+</tr>
+<tr>
+<td>校正输入缺失返回 k=1、系数分布看板与自动关闭</td>
+<td><a href="#inc-4-20-校正系数计算错误"><code>INC-4-20</code></a></td>
+<td>P1</td>
+<td>已实现 k=1 与 input_missing，实机验证；看板与自动关闭未做</td>
+</tr>
+<tr>
+<td>标记暂存机制、job-svc 双副本</td>
+<td><a href="#inc-4-22-job-svc-挂或-lag"><code>INC-4-22</code></a></td>
+<td>P1</td>
+<td>暂存已实现 job_feedback_pending 与到达后合并；双副本是部署事项</td>
+</tr>
+<tr>
+<td>设备端 job_start 非空闲拒绝（固件红线）</td>
+<td><a href="#inc-4-11-云端下发任务到作业中设备-p1"><code>INC-4-11</code></a></td>
+<td>P1</td>
+<td>云端已实现 DecideJobStart 双条件；设备端为固件红线</td>
+</tr>
+<tr>
+<td>entitlement 三重锁定进 CI</td>
+<td><a href="#inc-4-23-entitlement-误伤安全接口"><code>INC-4-23</code></a></td>
+<td>P2</td>
+<td>未做：P2</td>
+</tr>
+</tbody>
+</table></div>
+
+<footer>
+  <p>本文与 docs/incident-premortem-bl1.md 配套使用：设备与平台侧事故看 BL1，用户入口与业务链路事故看本文。每次真实事故后按 docs/incident-register-storm.md 的格式复盘，并把新教训回写到对应 INC-4 条目。</p>
+</footer>
+</div>
+
+</body>
+</html>

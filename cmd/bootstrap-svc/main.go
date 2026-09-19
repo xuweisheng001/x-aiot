@@ -30,7 +30,9 @@ func main() {
 	}
 	go cache.Run(ctx)
 
-	srv := &bootstrap.Server{Devices: repo, Cells: cache, CellRepo: repo, NCells: config.Cells()}
+	rdb := config.MustRedis()
+	defer rdb.Close()
+	srv := &bootstrap.Server{Devices: repo, Cells: cache, CellRepo: repo, NCells: config.Cells(), Dims: &bootstrap.RedisDims{RDB: rdb}}
 	addr := config.Env("IOT_HTTP_ADDR", ":8081")
 	slog.Info("listening", "svc", name, "addr", addr, "cells", config.Cells())
 	if err := httpx.Serve(addr, srv.Handler(name, version), ctx.Done()); err != nil {

@@ -60,6 +60,8 @@ func rstServer(t *testing.T, mode func(i int) bool) string {
 				return
 			}
 			if mode(i) {
+				// 稍等让客户端 connect 先返回：loopback 上 RST 若先于握手完成到达，Dial 会报错被计为 dial_fail（时序抖动）
+				time.Sleep(5 * time.Millisecond)
 				c.(*net.TCPConn).SetLinger(0)
 				c.Close()
 			} else {

@@ -39,6 +39,7 @@ func main() {
 	go pub.KeepAlive(ctx)
 
 	svc := ota.NewService(db, pub, ota.NewMetrics(), config.EnvInt("IOT_OTA_DISPATCH_RPS", ota.DefaultDispatchRPS))
+	svc.MinAbsFail = config.EnvInt("IOT_OTA_MIN_ABS_FAIL", ota.DefaultMinAbsFail)
 	go func() {
 		if err := ota.RunProgressConsumer(ctx, js, svc); err != nil && ctx.Err() == nil {
 			slog.Error("progress consumer exited", "err", err)
@@ -46,6 +47,8 @@ func main() {
 		}
 	}()
 	go svc.RunDispatcher(ctx, config.EnvDuration("IOT_OTA_DISPATCH_INTERVAL", 2*time.Second))
+	// stale 判定：下发后长时间无终态回报（刷砖/失联）按失败计入熔断（预推演 INC-16）。
+	go svc.RunStaleSweeper(ctx, config.EnvDuration("IOT_OTA_STALE_INTERVAL", time.Minute), config.EnvDuration("IOT_OTA_STALE_AFTER", 30*time.Minute))
 
 	addr := config.Env("IOT_HTTP_ADDR", ":8086")
 	slog.Info("ota-svc listening", "addr", addr, "version", version)

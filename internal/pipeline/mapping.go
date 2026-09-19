@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -27,12 +28,76 @@ type TelemetryPayload struct {
 	Progress   float64 `json:"progress"`
 }
 
-// EventPayload 是设备事件 JSON。
+// EventPayload 是设备事件 JSON。v1.1 任务字段可选（JOB_* 事件且设备 opt-in 时出现），缺失为空串。
 type EventPayload struct {
 	Seq  int64  `json:"seq"`
 	Ts   int64  `json:"ts"`
 	Code string `json:"code"`
 	Msg  string `json:"msg"`
+
+	JobID          string `json:"job_id"`
+	MaterialID     string `json:"material_id"`
+	ParamProfileID string `json:"param_profile_id"`
+	ParamsHash     string `json:"params_hash"`
+}
+
+// telemetryKnownKeys 是 TelemetryPayload 已建模的键；其余标量键作为「未知字段」透传进影子 reported（物模型 v1.1 属性如 module_model）。
+var telemetryKnownKeys = map[string]bool{"seq": true, "ts": true, "work_state": true, "power_level": true, "temp_cavity": true,
+	"temp_water": true, "fan_rpm": true, "laser_hours": true, "progress": true}
+
+// MaxTelemetryExtras 限制透传字段数，防止畸形固件把影子撑爆。
+const MaxTelemetryExtras = 32
+
+// ExtractTelemetryExtras 纯函数：取 payload 中未建模的**标量**字段（string/bool/number），键名需匹配 ^[a-z_][a-z0-9_]{0,31}$；
+// 对象/数组/null 丢弃；超过 MaxTelemetryExtras 个按键名排序截断。解析失败返回 nil。
+func ExtractTelemetryExtras(payload []byte) map[string]any {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &m); err != nil {
+		return nil
+	}
+	out := map[string]any{}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		if !telemetryKnownKeys[k] && validExtraKey(k) {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		if len(out) >= MaxTelemetryExtras {
+			break
+		}
+		var v any
+		if err := json.Unmarshal(m[k], &v); err != nil {
+			continue
+		}
+		switch v.(type) {
+		case string, bool, float64:
+			out[k] = v
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func validExtraKey(k string) bool {
+	if k == "" || len(k) > 32 {
+		return false
+	}
+	for i, c := range k {
+		switch {
+		case c == '_', c >= 'a' && c <= 'z':
+		case c >= '0' && c <= '9':
+			if i == 0 {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // CmdAckPayload 是指令回执 JSON。
@@ -48,6 +113,7 @@ type CmdAckPayload struct {
 type Parsed struct {
 	Env       *envelope.Envelope
 	Telemetry *TelemetryPayload
+	Extras    map[string]any // telemetry 未建模标量字段，随影子写入
 	Event     *EventPayload
 	CmdAck    *CmdAckPayload
 }
@@ -78,6 +144,7 @@ func ParseAndValidate(data []byte) (*Parsed, error) {
 			return nil, fmt.Errorf("%w: telemetry missing seq/ts", ErrPoison)
 		}
 		p.Telemetry = &t
+		p.Extras = ExtractTelemetryExtras(env.Payload)
 	case envelope.KindEvent:
 		var e EventPayload
 		if err := json.Unmarshal(env.Payload, &e); err != nil {
@@ -182,6 +249,23 @@ func ShadowFields(r tdengine.TelemetryRow) map[string]any {
 		"fan_rpm": r.FanRPM, "laser_hours": r.LaserHours, "progress": r.Progress,
 		"seq": r.Seq, "ts": r.Ts,
 	}
+}
+
+// ShadowFieldsWithExtras = ShadowFields + 未建模标量字段（extras 不得覆盖已建模键）。
+func ShadowFieldsWithExtras(r tdengine.TelemetryRow, extras map[string]any) map[string]any {
+	f := ShadowFields(r)
+	for k, v := range extras {
+		if _, taken := f[k]; !taken {
+			f[k] = v
+		}
+	}
+	return f
+}
+
+// ToEventRow 把事件 payload 映射为 TDengine 行（纯函数），含 v1.1 任务字段。
+func ToEventRow(env *envelope.Envelope, d DeviceInfo, e *EventPayload) tdengine.EventRow {
+	return tdengine.EventRow{SN: env.SN, PK: d.PK, Ts: e.Ts, Seq: e.Seq, Code: e.Code, Msg: e.Msg,
+		JobID: e.JobID, MaterialID: e.MaterialID, ParamProfileID: e.ParamProfileID, ParamsHash: e.ParamsHash}
 }
 
 // EventShadowFields 是事件写入影子的 last_event 字段。

@@ -21,7 +21,9 @@ const (
 	CodeConflict    = 10009
 	CodeNoQuota     = 11010
 	CodeRateLimited = 100012
-	CodeInternal    = 50000
+	// CodeAuditUnavailable：审计流不可用时拒绝下发指令（审计先于指令，FR-19 审计 100% 落库）。
+	CodeAuditUnavailable = 100013
+	CodeInternal         = 50000
 )
 
 type Resp struct {

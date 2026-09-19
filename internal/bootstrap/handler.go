@@ -24,6 +24,7 @@ type Server struct {
 	Cells    *CellCache
 	CellRepo CellRepo
 	NCells   int
+	Dims     DimWriter // 可选：写 device:{sn} 维表；nil 则跳过
 }
 
 // Handler 返回带限流/日志/恢复中间件的路由。
@@ -60,6 +61,14 @@ func (s *Server) handleBootstrap(w http.ResponseWriter, r *http.Request) {
 		slog.Error("bootstrap device lookup", "sn", sn, "err", err)
 		httpx.Error(w, http.StatusInternalServerError, httpx.CodeInternal, "device lookup failed")
 		return
+	}
+	if s.Dims != nil {
+		// 维表写入尽力而为：失败只记日志，不影响调度结果（pipeline 对缺失维表有 enrich_missing 计数兜底）
+		dctx, dcancel := context.WithTimeout(ctx, DimWriteTimeout)
+		if err := s.Dims.WriteDims(dctx, sn, DimFields(dev)); err != nil {
+			slog.Warn("bootstrap write dims", "sn", sn, "err", err)
+		}
+		dcancel()
 	}
 	resp, ok := Decide(s.Cells.Snapshot(), dev.CellID, dev.CellMapVer)
 	if !ok {

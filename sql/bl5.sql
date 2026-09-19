@@ -27,16 +27,6 @@ CREATE TABLE IF NOT EXISTS site (
 );
 CREATE INDEX IF NOT EXISTS idx_site_org ON site(org_id);
 
--- 组织 OTA 子批次策略：ota_batch 不改表，显式 SN / 父批次 / 维护窗口放这张伴随表（ota-svc 读它决定窗口外不下发）。
-CREATE TABLE IF NOT EXISTS ota_batch_policy (
-  batch_id        BIGINT PRIMARY KEY REFERENCES ota_batch(id),
-  parent_batch_id BIGINT REFERENCES ota_batch(id),
-  explicit_sns    BOOLEAN     NOT NULL DEFAULT false,
-  dispatch_window JSONB,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_ota_policy_parent ON ota_batch_policy(parent_batch_id);
-
 -- ===================== 分片库 iot_shard =====================
 SET search_path TO iot_shard;
 
@@ -188,8 +178,8 @@ CREATE TABLE IF NOT EXISTS org_ota_batch (
 -- 满足「新库从 global.sql 建 + bl5.sql 补」与「老库重复执行 bl5.sql」两种路径。
 --   parent_batch_id：组织子批次指向平台父批次，NULL = 平台批次（档位顺序链只看 NULL 的那些）
 --   policy        ：下发策略，目前只识别 window {start,end,tz,weekdays}
--- 上面的伴随表 ota_batch_policy 是同一需求的早期设计（不改主表、旁挂一张），代码最终走了本节的两列：
--- 下发主循环每轮都要读 policy 判窗口，多一次 JOIN 不值当。ota_batch_policy 暂留空表不再写入。
+-- 早期设计曾想旁挂一张 ota_batch_policy 伴随表（不动主表），最终没走：下发主循环每轮都要读
+-- policy 判窗口，多一次 JOIN 不值当。那张表已从本文件删除，老库里若残留可安全 DROP（从未写入）。
 -- ---------------------------------------------------------------------------
 ALTER TABLE iot_global.ota_batch ADD COLUMN IF NOT EXISTS parent_batch_id BIGINT;
 ALTER TABLE iot_global.ota_batch ADD COLUMN IF NOT EXISTS policy JSONB;

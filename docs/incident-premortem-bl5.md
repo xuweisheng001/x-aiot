@@ -452,22 +452,22 @@
 
 ## 11. 试点上线前必须补齐的能力
 
-| 能力 | 对应事故 | 优先级 |
-|---|---|---|
-| locked 只改 start_allowed 一个变量，台架三项进固件门禁 | INC-5-07 | P0 红线 |
-| 合成探针：站点探针机 locked 下安全事件链路每小时 | INC-5-07 | P0 |
-| 解锁兜底不依赖 fleet-svc（deviceapi 直写脚本）；应急解锁 U 盘 | INC-5-08 | P0 |
-| 越权测试进 CI；repo 层 SQL 模板化 | INC-5-03 | P0 |
-| 授权与订阅在成员变更事务内失效 | INC-5-01 INC-5-22 | P0 |
-| 调度器条件 UPDATE + uk_item_device_active + 幂等键 + 租约 | INC-5-13 INC-5-14 | P0 |
-| InWindow / ShouldLock 用 IANA 时区并单测夏令时 | INC-5-10 INC-5-18 | P0 |
-| ota-svc 层校验 explicit_sns 批次的父批次档位 | INC-5-20 | P0 |
-| alarm-svc 对 fleet-svc 超时 / 熔断 / 回退 + 停机测试 | INC-5-21 | P0 |
-| 课表下发限速与后台任务 | INC-5-12 | P0 |
-| 归属需设备确认或核对个人绑定用户 | INC-5-04 | P1 |
-| 屏幕解锁码 | INC-5-08 | P1 |
-| 文件过期 needs_reupload | INC-5-17 | P1 |
-| entitlement 三重锁定 + 到期组织仍可解锁用例 | INC-5-23 | P2 |
+| 能力 | 对应事故 | 优先级 | 状态（2026-09-19） |
+|---|---|---|---|
+| locked 只改 start_allowed 一个变量，台架三项进固件门禁 | INC-5-07 | P0 红线 | 固件侧；云端已实现 DecideJobStart 仅拦「开始新任务」，pause/stop/告警不受锁影响 |
+| 合成探针：站点探针机 locked 下安全事件链路每小时 | INC-5-07 | P0 | 未做 |
+| 解锁兜底不依赖 fleet-svc（deviceapi 直写脚本）；应急解锁 U 盘 | INC-5-08 | P0 | 未做：deviceapi PATCH /desired 可直接改 lock，脚本与 U 盘流程未做 |
+| 越权测试进 CI；repo 层 SQL 模板化 | INC-5-03 | P0 | 越权测试已实现（fake Store 单测 + IT），实机验证跨组织 404；进 CI 未做 |
+| 授权与订阅在成员变更事务内失效 | INC-5-01 INC-5-22 | P0 | 未做 |
+| 调度器条件 UPDATE + uk_item_device_active + 幂等键 + 租约 | INC-5-13 INC-5-14 | P0 | 已实现 ClaimDispatch/ConfirmDispatch/RevertDispatch + uk_item_device_active，IT 验证不重复下发 |
+| InWindow / ShouldLock 用 IANA 时区并单测夏令时 | INC-5-10 INC-5-18 | P0 | 已实现，ShouldLock 含夏令时切换日用例，InWindow 26 例表驱动 |
+| ota-svc 层校验 explicit_sns 批次的父批次档位 | INC-5-20 | P0 | 已实现 ParentEligible（≥10% 档且未 fused）；并修掉子批次污染平台档位链的 bug |
+| alarm-svc 对 fleet-svc 超时 / 熔断 / 回退 + 停机测试 | INC-5-21 | P0 | 已实现 500 ms 超时与回退，实机验证 fleet 停机后告警照常推送并计 fallback；熔断未做 |
+| 课表下发限速与后台任务 | INC-5-12 | P0 | 后台对账已实现（每分钟）；限速未做 |
+| 归属需设备确认或核对个人绑定用户 | INC-5-04 | P1 | 已实现 ResolveOwnership 裁决并留痕；设备确认未做 |
+| 屏幕解锁码 | INC-5-08 | P1 | 未做：固件与 App 侧 |
+| 文件过期 needs_reupload | INC-5-17 | P1 | 未做 |
+| entitlement 三重锁定 + 到期组织仍可解锁用例 | INC-5-23 | P2 | 未做：P2 |
 
 ---
 

@@ -17,6 +17,7 @@
 | BL4 软件与内容 | param-svc / job-svc / reco-job | 8090 / 8091 | 参数库版本化与灰度、加工记录反哺、推荐候选生成 |
 | BL5 教育与 B 端 | fleet-svc | 8094 | 组织租户隔离、多机看板、课表锁、任务队列与调度器 |
 | BL6 售后与保修 | support-svc | 8095 | 诊断包白名单、客服授权自检、Agent 只读代理、批次缺陷发现 |
+| 检测层（全线共用） | probe | 8096 | 安全事件合成探针：每 10 分钟经真实链路打一发火焰事件，量端到端到推送的时间 |
 
 **三条贯穿全部业务线的约束**
 
@@ -48,7 +49,11 @@ go run ./cmd/device-simulator -n 1 -sn-prefix ACC -accessory -pair-host SIM00001
 go run ./cmd/device-simulator -n 1 -job-optin=true -module LM40                     # 上报 JOB_* 与模块型号
 go run ./cmd/reco-job -once                                                          # 推荐候选离线批
 go run ./cmd/health-svc -once                                                        # 健康度批计算
+go run ./cmd/probe -once                                                             # 合成探针单发（missing 时退出码 1）
 ```
+
+探针要求 `iot_shard.device` 里有一台 activated 的探针设备（默认 SN `PROBE00001`），
+并且间隔必须大于告警聚合窗口 5 分钟，否则第二发会被聚合吞掉、被误判成漏告警。
 
 ## 文档
 

@@ -1106,7 +1106,7 @@ curl :8086/api/v1/ota/batches/&lt;id&gt;                    # 看 target_total /
 <td>安全事件合成探针 + 事件与告警对账任务</td>
 <td><a href="#inc-10-火焰事件漏告警-s1"><code>INC-10</code></a></td>
 <td>P0</td>
-<td>对账已实现：alarm-svc Reconciler，每 5 min 比对 TDengine events 与 PG alarm，缺失走 HandleEventNoSquelch 补录；合成探针待部署（模拟器 -event 常驻）</td>
+<td>已实现：alarm-svc Reconciler 每 5 min 比对 TDengine events 与 PG alarm 补录；合成探针 cmd/probe 经真实 MQTT 链路每 10 min 一发，实测端到端 18 ms，杀掉 alarm-svc 即报 S1 并退出码 1</td>
 </tr>
 <tr>
 <td>OTA stale 判定（下发后 30 分钟无终态计 fail）+ 绝对数熔断</td>

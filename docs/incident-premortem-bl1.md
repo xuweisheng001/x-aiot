@@ -666,7 +666,7 @@ CREATE TABLE IF NOT EXISTS iot_shard.cmd_audit_YYYYMM PARTITION OF iot_shard.cmd
 
 | 能力 | 对应事故 | 优先级 | 状态（2026-09-18） |
 |---|---|---|---|
-| 安全事件合成探针 + 事件与告警对账任务 | INC-10 | P0 | 对账已实现：alarm-svc Reconciler，每 5 min 比对 TDengine events 与 PG alarm，缺失走 HandleEventNoSquelch 补录；合成探针待部署（模拟器 -event 常驻） |
+| 安全事件合成探针 + 事件与告警对账任务 | INC-10 | P0 | 已实现：alarm-svc Reconciler 每 5 min 比对 TDengine events 与 PG alarm 补录；合成探针 cmd/probe 经真实 MQTT 链路每 10 min 一发，实测端到端 18 ms，杀掉 alarm-svc 即报 S1 并退出码 1 |
 | OTA stale 判定（下发后 30 分钟无终态计 fail）+ 绝对数熔断 | INC-16 | P0 | 已实现：ota-svc SweepStale（IOT_OTA_STALE_AFTER 30m）与 ShouldFuseAbs（IOT_OTA_MIN_ABS_FAIL 5） |
 | CreateBatch 强制档位顺序 | INC-17 | P0 | 已实现：ExpectedNextStage，越级 409，最新批次 FOR UPDATE |
 | poison 消息落死信而非丢弃 | INC-08 | P0 | 已实现：IOT_DLQ 流，`iot.dlq.<kind>`，发布失败 Nak |
